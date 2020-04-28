@@ -1,0 +1,124 @@
+===================== PySyft environment setup on for Raspberry Pi ==========================
+References:
+1) https://blog.openmined.org/federated-learning-of-a-rnn-on-raspberry-pis/
+2) https://gist.github.com/akaanirban/621e63237e63bb169126b537d7a1d979
+3) https://github.com/OpenMined/PySyft/issues/2218
+
+---------------------------------------------------------------------------------------------
+								pytorch setup
+---------------------------------------------------------------------------------------------
+A) Install the prerequisites:
+	
+	sudo apt-get update
+
+	sudo apt install libopenblas-dev libblas-dev m4 cmake cython python3-yaml libatlas-base-dev	-y
+	
+    sudo apt-get install build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev -y
+	
+	// upgrade updates
+	sudo apt-get upgrade
+	
+	// reboot the activate
+	sudo reboot
+
+B) Preparation: Increase the swap size:	
+	# Stop the swap
+	sudo dphys-swapfile swapoff
+	
+	# Modify the size of the swap by editing. 
+	sudo pico /etc/dphys-swapfile
+	# Modify the valiable CONF_SWAPSIZE and change its value to CONF_SWAPSIZE=2048
+	
+	# update the changes.:
+	sudo dphys-swapfile setup 
+	
+	# Start the swap back again
+	sudo dphys-swapfile swapon
+	
+	# Check if the changes have taken place: 
+	free -m
+
+C) For raspberry pi 4 there may be an issue with the Gcc and G++ version. Install an older version ans use it
+	sudo apt-get install gcc-4.9 g++-4.9 -y
+	
+D) Set the environment variables
+	# open ~/.bashrc
+	pico ~/.bashrc
+	
+	# append following env setup at the end of file
+		export CC=gcc-4.9
+		export CXX=g++-4.9
+		export USE_CUDA=0
+		export USE_MKLDNN=0
+		export USE_NNPACK=0
+		export USE_QNNPACK=0
+		export USE_NUMPY=1
+		export USE_DISTRIBUTED=0
+		export NO_CUDA=1
+		export NO_DISTRIBUTED=1
+		export NO_MKLDNN=1 
+		export NO_NNPACK=1
+		export NO_QNNPACK=1
+		export ONNX_ML=1 ## this is extremely important otherwise you will run into onnx_pb.h error. 
+		# other workaround is edit the onnx_pb.h file and add #define ONNX_ML 1 inside it to skip
+
+	# activate env
+	source ~/.bashrc
+	
+E) Build pytorch and install
+	# Download pyTorch:
+	mkdir pytorch_install && cd pytorch_install
+	git clone --recursive https://github.com/pytorch/pytorch --branch=v1.0.0
+	cd pytorch
+	
+	# install a specific branch e.g. v1.0.0
+	git checkout v1.0.0
+	
+	# Build Pytorch
+	sudo -E python3 setup.py build
+	
+	# Install Pytorch
+	sudo -E python3 setup.py install
+	
+	# (optional) Always build a wheel and keep it somewhere safe because you have already build from source.
+	sudo -E python3 setup.py bdist_wheel
+	
+	# (optional) Everytime you face an error, do clean up the corrupted builds:
+	sudo -E python3 setup.py clean --all
+	
+F) To test your installation:
+	cd ../
+	python3
+    >>> import torch
+    >>> print(torch.__version__)
+	
+
+---------------------------------------------------------------------------------------------
+								PySyft setup
+---------------------------------------------------------------------------------------------
+A) Get the latest version of PySyft:
+	git clone https://github.com/OpenMined/PySyft.git
+	cd PySyft
+		
+	# install a specific branch e.g. 0.1.23a
+	git checkout 0.1.23a
+	
+B) Install PySyft's dependencies. (before execute, modify requirements,txt to remove "torch' and "torchversion" items)
+	pip3 install -r requirements.txt
+	
+C) build and install syft
+	sudo -E python3 setup.py build
+	sudo -E python3 setup.py install
+
+D) To test your installation:
+	cd ../
+	python3
+    >>> import syft
+    >>> print(syft.__version__)
+	
+
+
+
+	
+
+			
