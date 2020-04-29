@@ -5,10 +5,9 @@ References:
 3) https://github.com/OpenMined/PySyft/issues/2218
 
 ---------------------------------------------------------------------------------------------
-								pytorch setup
+								Install the prerequisites
 ---------------------------------------------------------------------------------------------
-A) Install the prerequisites:
-	
+	// update packages
 	sudo apt-get update
 
 	sudo apt install libopenblas-dev libblas-dev m4 cmake cython python3-yaml libatlas-base-dev	-y
@@ -21,7 +20,10 @@ A) Install the prerequisites:
 	// reboot the activate
 	sudo reboot
 
-B) Preparation: Increase the swap size:	
+---------------------------------------------------------------------------------------------
+								pytorch setup (Build from source-v1.0.0)
+---------------------------------------------------------------------------------------------
+A) Preparation: Increase the swap size:	
 	# Stop the swap
 	sudo dphys-swapfile swapoff
 	
@@ -38,10 +40,10 @@ B) Preparation: Increase the swap size:
 	# Check if the changes have taken place: 
 	free -m
 
-C) For raspberry pi 4 there may be an issue with the Gcc and G++ version. Install an older version ans use it
+B) For raspberry pi 4 there may be an issue with the Gcc and G++ version. Install an older version ans use it
 	sudo apt-get install gcc-4.9 g++-4.9 -y
 	
-D) Set the environment variables
+C) Set the environment variables
 	# open ~/.bashrc
 	pico ~/.bashrc
 	
@@ -65,7 +67,7 @@ D) Set the environment variables
 	# activate env
 	source ~/.bashrc
 	
-E) Build pytorch and install
+D) Build pytorch and install
 	# Download pyTorch:
 	mkdir pytorch_install && cd pytorch_install
 	git clone --recursive https://github.com/pytorch/pytorch --branch=v1.0.0
@@ -86,12 +88,20 @@ E) Build pytorch and install
 	# (optional) Everytime you face an error, do clean up the corrupted builds:
 	sudo -E python3 setup.py clean --all
 	
-F) To test your installation:
+E) To test your installation:
 	cd ../
 	python3
     >>> import torch
     >>> print(torch.__version__)
 	
+
+---------------------------------------------------------------------------------------------
+								pytorch setup (install from *.whl)
+---------------------------------------------------------------------------------------------
+A) Download *.whl from web. We provde torch 1.4.0 wheel at root of project folder
+
+B) In stall torch using *.whl:
+	pip3 install torch-1.4.0a0+7963631-cp37-cp37m-linux_armv7l.whl
 
 ---------------------------------------------------------------------------------------------
 								PySyft setup
@@ -104,7 +114,12 @@ A) Get the latest version of PySyft:
 	git checkout 0.1.23a
 	
 B) Install PySyft's dependencies. (before execute, modify requirements,txt to remove "torch' and "torchversion" items)
+    # for v0.1.23a
 	pip3 install -r requirements.txt
+	
+	# for v0.2.4
+	pip install -r pip-dep/requirements.txt
+	pip install -r pip-dep/requirements_udacity.txt
 	
 C) build and install syft
 	sudo -E python3 setup.py build
