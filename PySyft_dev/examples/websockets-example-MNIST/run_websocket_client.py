@@ -13,7 +13,6 @@ from syft.workers.virtual import VirtualWorker
 from syft.frameworks.torch.fl import utils
 
 logger = logging.getLogger(__name__)
-
 LOG_INTERVAL = 25
 
 
@@ -206,21 +205,35 @@ def define_and_get_arguments(args=sys.argv[1:]):
 
 
 def main():
+    logger.info("Configure arguments.\n")
     args = define_and_get_arguments()
 
     hook = sy.TorchHook(torch)
 
+    logger.info("Worker setup.\n")
     if args.use_virtual:
         alice = VirtualWorker(id="alice", hook=hook, verbose=args.verbose)
         bob = VirtualWorker(id="bob", hook=hook, verbose=args.verbose)
         charlie = VirtualWorker(id="charlie", hook=hook, verbose=args.verbose)
+        workers = [alice, bob, charlie]
     else:
-        kwargs_websocket = {"host": "localhost", "hook": hook, "verbose": args.verbose}
-        alice = WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
-        bob = WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
-        charlie = WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
+        # kwargs_websocket = {"host": "localhost", "hook": hook, "verbose": args.verbose}
+        # alice = WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
+        # bob = WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
+        # charlie = WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
+        kwargs_websocket_Pi4_R1_1 = {"host": "128.226.77.157", "hook": hook}
+        Pi4_R1_1 = WebsocketClientWorker(id="Pi4_R1_1", port=8777, **kwargs_websocket_Pi4_R1_1)
 
-    workers = [alice, bob, charlie]
+        kwargs_websocket_Pi4_R1_2 = {"host": "128.226.78.128", "hook": hook}
+        Pi4_R1_2 = WebsocketClientWorker(id="Pi4_R1_2", port=8777, **kwargs_websocket_Pi4_R1_2)
+
+        kwargs_websocket_Pi4_R1_3 = {"host": "128.226.88.155", "hook": hook}
+        Pi4_R1_3 = WebsocketClientWorker(id="Pi4_R1_3", port=8777, **kwargs_websocket_Pi4_R1_3)
+
+        kwargs_websocket_Pi4_R1_4 = {"host": "128.226.79.31", "hook": hook}
+        Pi4_R1_4 = WebsocketClientWorker(id="Pi4_R1_4", port=8777, **kwargs_websocket_Pi4_R1_4)
+
+        workers = [Pi4_R1_1, Pi4_R1_2, Pi4_R1_3, Pi4_R1_4]
 
     use_cuda = args.cuda and torch.cuda.is_available()
 
@@ -230,6 +243,7 @@ def main():
 
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
 
+    logger.info("federated_train_loader setup.\n")
     federated_train_loader = sy.FederatedDataLoader(
         datasets.MNIST(
             "../data",
@@ -245,6 +259,7 @@ def main():
         **kwargs,
     )
 
+    logger.info("test_loader setup.\n")
     test_loader = torch.utils.data.DataLoader(
         datasets.MNIST(
             "../data",
@@ -258,6 +273,7 @@ def main():
         **kwargs,
     )
 
+    logger.info("Net() setup and start traning.\n")
     model = Net().to(device)
 
     for epoch in range(1, args.epochs + 1):
