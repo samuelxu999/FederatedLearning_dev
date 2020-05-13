@@ -68,7 +68,11 @@ def define_and_get_arguments(args=sys.argv[1:]):
         action="store_true",
         help="if set, websocket client workers will be started in verbose mode",
     )
-
+    parser.add_argument(
+        "--localworkers",
+        action="store_true",
+        help="if set, use (localhost) websocket server workers, otherwize, connect to remote worker server."
+    )
     args = parser.parse_args(args=args)
     return args
 
@@ -174,11 +178,26 @@ async def main():
 
     hook = sy.TorchHook(torch)
 
-    kwargs_websocket = {"hook": hook, "verbose": args.verbose, "host": "0.0.0.0"}
-    alice = websocket_client.WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
-    bob = websocket_client.WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
-    charlie = websocket_client.WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
-    testing = websocket_client.WebsocketClientWorker(id="testing", port=8780, **kwargs_websocket)
+    if(args.localworkers):
+        # ----------------------------- This is for localhost workers --------------------------------
+        kwargs_websocket = {"hook": hook, "verbose": args.verbose, "host": "0.0.0.0"}
+        alice = websocket_client.WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
+        bob = websocket_client.WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
+        charlie = websocket_client.WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
+        testing = websocket_client.WebsocketClientWorker(id="testing", port=8780, **kwargs_websocket)
+    else:
+        # ----------------------------- This is for remote workers ------------------------------------
+        kwargs_websocket_alice = {"host": "128.226.78.195", "hook": hook}
+        alice = websocket_client.WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket_alice)
+
+        kwargs_websocket_bob = {"host": "128.226.77.222", "hook": hook}
+        bob = websocket_client.WebsocketClientWorker(id="bob", port=8777, **kwargs_websocket_bob)
+
+        kwargs_websocket_charlie = {"host": "128.226.88.120", "hook": hook}
+        charlie = websocket_client.WebsocketClientWorker(id="charlie", port=8777, **kwargs_websocket_charlie)
+
+        kwargs_websocket_testing = {"host": "128.226.77.111", "hook": hook}
+        testing = websocket_client.WebsocketClientWorker(id="testing", port=8777, **kwargs_websocket_testing)
 
     for wcw in [alice, bob, charlie, testing]:
         wcw.clear_objects_remote()
