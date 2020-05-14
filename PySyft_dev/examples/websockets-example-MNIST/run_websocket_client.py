@@ -199,7 +199,10 @@ def define_and_get_arguments(args=sys.argv[1:]):
     parser.add_argument(
         "--use_virtual", action="store_true", help="if set, virtual workers will be used"
     )
-
+    parser.add_argument(
+        "--localworkers", action="store_true", 
+        help="if set, use (localhost) websocket server workers, otherwize, use (remote) worker servers."
+    )
     args = parser.parse_args(args=args)
     return args
 
@@ -217,23 +220,26 @@ def main():
         charlie = VirtualWorker(id="charlie", hook=hook, verbose=args.verbose)
         workers = [alice, bob, charlie]
     else:
-        # kwargs_websocket = {"host": "localhost", "hook": hook, "verbose": args.verbose}
-        # alice = WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
-        # bob = WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
-        # charlie = WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
-        kwargs_websocket_Pi4_R1_1 = {"host": "128.226.77.157", "hook": hook}
-        Pi4_R1_1 = WebsocketClientWorker(id="Pi4_R1_1", port=8777, **kwargs_websocket_Pi4_R1_1)
+        if args.localworkers:
+            kwargs_websocket = {"host": "localhost", "hook": hook, "verbose": args.verbose}
+            alice = WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
+            bob = WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
+            charlie = WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
+            workers = [alice, bob, charlie]
+        else:
+            kwargs_websocket_Pi4_R1_1 = {"host": "128.226.77.157", "hook": hook}
+            Pi4_R1_1 = WebsocketClientWorker(id="Pi4_R1_1", port=8777, **kwargs_websocket_Pi4_R1_1)
 
-        kwargs_websocket_Pi4_R1_2 = {"host": "128.226.78.128", "hook": hook}
-        Pi4_R1_2 = WebsocketClientWorker(id="Pi4_R1_2", port=8777, **kwargs_websocket_Pi4_R1_2)
+            kwargs_websocket_Pi4_R1_2 = {"host": "128.226.78.128", "hook": hook}
+            Pi4_R1_2 = WebsocketClientWorker(id="Pi4_R1_2", port=8777, **kwargs_websocket_Pi4_R1_2)
 
-        kwargs_websocket_Pi4_R1_3 = {"host": "128.226.88.155", "hook": hook}
-        Pi4_R1_3 = WebsocketClientWorker(id="Pi4_R1_3", port=8777, **kwargs_websocket_Pi4_R1_3)
+            kwargs_websocket_Pi4_R1_3 = {"host": "128.226.88.155", "hook": hook}
+            Pi4_R1_3 = WebsocketClientWorker(id="Pi4_R1_3", port=8777, **kwargs_websocket_Pi4_R1_3)
 
-        kwargs_websocket_Pi4_R1_4 = {"host": "128.226.79.31", "hook": hook}
-        Pi4_R1_4 = WebsocketClientWorker(id="Pi4_R1_4", port=8777, **kwargs_websocket_Pi4_R1_4)
+            kwargs_websocket_Pi4_R1_4 = {"host": "128.226.79.31", "hook": hook}
+            Pi4_R1_4 = WebsocketClientWorker(id="Pi4_R1_4", port=8777, **kwargs_websocket_Pi4_R1_4)
 
-        workers = [Pi4_R1_1, Pi4_R1_2, Pi4_R1_3, Pi4_R1_4]
+            workers = [Pi4_R1_1, Pi4_R1_2, Pi4_R1_3, Pi4_R1_4]
 
     use_cuda = args.cuda and torch.cuda.is_available()
 
