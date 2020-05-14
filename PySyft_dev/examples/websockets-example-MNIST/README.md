@@ -5,20 +5,32 @@ Reference: https://github.com/OpenMined/PySyft/tree/master/examples/tutorials/ad
 
 The scripts in this folder let you execute a federated training via three websocket connections.
 
-The script start_websocket_servers.py will start the (localhost) Websocket server workers for Alice, Bob and Charlie.
+The script start_websocket_servers.py will start the (localhost) websocket server workers for Alice, Bob and Charlie.
 ```
-$ python3 start_websocket_servers.py
+$ python3 start_websocket_servers.py --localworkers
 ```
 
 If you want to use remote workers that are deployed on networking machine, like Rpi. You need start (remote) Websocket server workers by execute script on that machine.
 ```
-$ python3 run_websocket_server.py --host @IP --port 8777 --id @Worker_ID
+$ python3 start_websocket_servers.py --host @IP --port 8777 --id @Worker_ID
 ```
 
-The training is then started by running the script run_websocket_client.py:
+The federated training could be started by running the script run_websocket_client.py.
+
+1) Virtual workers:
+
 ```
-$ python run_websocket_client.py
+$ python3 run_websocket_client.py --use_virtual
 ```
+
+2) Websocket server workers:
+
+```
+$ python3 run_websocket_client.py
+```
+
+Using --localworkers can select mode: localhost work or remote worker.
+
 This script
  * loads the MNIST dataset,
  * distributes it onto the workers
