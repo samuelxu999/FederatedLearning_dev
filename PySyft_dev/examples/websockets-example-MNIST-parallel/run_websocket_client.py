@@ -196,7 +196,8 @@ async def main():
         kwargs_websocket_charlie = {"host": "128.226.88.120", "hook": hook}
         charlie = websocket_client.WebsocketClientWorker(id="charlie", port=8777, **kwargs_websocket_charlie)
 
-        kwargs_websocket_testing = {"host": "128.226.77.111", "hook": hook}
+        # kwargs_websocket_testing = {"host": "128.226.77.111", "hook": hook}
+        kwargs_websocket_testing = {"host": "128.226.88.210", "hook": hook}
         testing = websocket_client.WebsocketClientWorker(id="testing", port=8777, **kwargs_websocket_testing)
 
     for wcw in [alice, bob, charlie, testing]:
