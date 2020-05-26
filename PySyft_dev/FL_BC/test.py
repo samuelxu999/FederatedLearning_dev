@@ -14,6 +14,9 @@ import syft as sy
 from syft.workers import websocket_client
 from syft.frameworks.torch.fl import utils
 
+from utilities import DatetimeUtil, TypesUtil, FileUtil
+from wrapper_pyca import Crypto_Hash
+
 LOG_INTERVAL = 25
 logger = logging.getLogger("run_websocket_client")
 
@@ -73,39 +76,7 @@ def define_and_get_arguments(args=sys.argv[1:]):
     args = parser.parse_args(args=args)
     return args
 
-def test_main():
-    args = define_and_get_arguments()
-
-    use_cuda = args.cuda and torch.cuda.is_available()
-
-    torch.manual_seed(args.seed)
-
-    device = torch.device("cuda" if use_cuda else "cpu")
-    kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
-
-    logger.info("module setup...\n")
-    model = Net().to(device)
-    model=load_model("mnist_cnn.pt")
-
-    logger.info("test_loader setup...\n")
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST(
-            root="./data",
-            train=False,
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-            ),
-        ),
-        batch_size=args.test_batch_size,
-        shuffle=True,
-        **kwargs,
-    )
-
-    logger.info("test module...\n")
-    test_model(model, device, test_loader)
-
-
-def load_model(model_path):
+def load_model(model_path, isShowInfo=False):
     device = torch.device("cpu")
     model = Net().to(device)
     if( os.path.isfile(model_path) ):
@@ -114,12 +85,13 @@ def load_model(model_path):
     else:
         logger.info("{} is not existed. Use default parameters in Net.\n".format(model_path) )
 
-    # Print model's state_dict
-    logger.info("Model's state_dict:")
-    for param_tensor in model.state_dict():
-        logger.info("%s \t %s", param_tensor, model.state_dict()[param_tensor].size())
-        # logger.info("%s \t %s", param_tensor, model.state_dict()[param_tensor])
-    logger.info("")
+    if( isShowInfo ):
+	    # Print model's state_dict
+	    logger.info("Model's state_dict:")
+	    for param_tensor in model.state_dict():
+	        logger.info("%s \t %s", param_tensor, model.state_dict()[param_tensor].size())
+	        # logger.info("%s \t %s", param_tensor, model.state_dict()[param_tensor])
+	    logger.info("")
     return model
 
 def test_model(model, device, test_loader):
@@ -143,12 +115,77 @@ def test_model(model, device, test_loader):
         )
     )
 
+def test_main():
+    args = define_and_get_arguments()
+
+    use_cuda = args.cuda and torch.cuda.is_available()
+
+    torch.manual_seed(args.seed)
+
+    device = torch.device("cuda" if use_cuda else "cpu")
+    kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
+
+    logger.info("module setup...\n")
+    model=load_model("mnist_cnn.pt", True)
+
+    logger.info("test_loader setup...\n")
+    test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST(
+            root="./data",
+            train=False,
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            ),
+        ),
+        batch_size=args.test_batch_size,
+        shuffle=True,
+        **kwargs,
+    )
+
+    logger.info("test module...\n")
+    test_model(model, device, test_loader)
+
+def hash_model(model):
+	'''
+	Generate hash value of model data (tensor-->numpy-->string)
+
+    Args:
+        model: tensor model object
+
+    Returns:
+        Binary hash value
+	'''
+	str_model=[]
+	# For each model's state_dict to get str_model
+	logger.info("For each model's state_dict to get str_model...\n")
+	for param_tensor in model.state_dict():
+		# conver to numpy array
+		value_np = model.state_dict()[param_tensor].numpy()
+		# conver to string, which is used for hash function
+		str_model.append([param_tensor, str(value_np)])
+
+	# convert string to byte before hash operation
+	bytes_block = TypesUtil.string_to_bytes(str(str_model))
+
+	# generate hash value based on byte string
+	hash_value = Crypto_Hash.generate_hash(bytes_block)
+
+	return hash_value
+
 
 if __name__ == "__main__":
-    # Logging setup
-    FORMAT = "%(asctime)s | %(message)s"
-    logging.basicConfig(format=FORMAT)
-    logger.setLevel(level=logging.DEBUG)
+	# Logging setup
+	FORMAT = "%(asctime)s | %(message)s"
+	logging.basicConfig(format=FORMAT)
+	logger.setLevel(level=logging.DEBUG)
 
-    test_main()
-    pass
+	test_main()
+
+	model=load_model("mnist_cnn.pt")
+	hash_value=hash_model(model)
+	logger.info("{} \n".format(hash_value))
+
+	model_hash={}
+	model_hash['mnist_cnn.pt']=str(hash_value)
+	logger.info( model_hash['mnist_cnn.pt']==str(hash_value) )
+	pass
