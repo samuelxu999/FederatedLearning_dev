@@ -347,6 +347,13 @@ def main():
         logger.info("Starting epoch %s/%s", epoch, args.epochs)
         model = async_train(model, device, federated_train_loader, args.lr, args.federate_after_n_batches)        
         test(model, device, test_loader)
+        
+        # save indermediate model
+        model_dir = "models"
+        if(not os.path.exists(model_dir)):
+            os.makedirs(model_dir)
+        model_name = "{}/mnist_cnn_{}.pt".format(model_dir, epoch)
+        torch.save(model.state_dict(), model_name)
 
     if args.save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")

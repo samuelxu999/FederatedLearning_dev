@@ -1,3 +1,4 @@
+import time
 import logging
 import argparse
 import sys
@@ -16,9 +17,20 @@ from syft.frameworks.torch.fl import utils
 
 from utilities import DatetimeUtil, TypesUtil, FileUtil
 from wrapper_pyca import Crypto_Hash
+from Index_Token import IndexToken 
 
 LOG_INTERVAL = 25
-logger = logging.getLogger("run_websocket_client")
+
+logger = logging.getLogger("test")
+
+#global variable
+addr_list = "./addr_list.json"
+http_provider = "http://localhost:8042"
+contract_addr = IndexToken.getAddress('HashModelToken', addr_list)
+contract_config = "./contracts/IndexToken.json"
+
+#new ABACToken object
+mytoken=IndexToken(http_provider, contract_addr, contract_config)
 
 
 # Model
@@ -133,6 +145,7 @@ def test_main():
         datasets.MNIST(
             root="./data",
             train=False,
+            download=True,
             transform=transforms.Compose(
                 [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
             ),
@@ -172,20 +185,65 @@ def hash_model(model):
 
 	return hash_value
 
+def test_hashmodel():
+    # calculate hash value for model
+    model_name = "mnist_cnn.pt"
+    model=load_model(model_name)
+    hash_value=hash_model(model)
+    # logger.info("{} \n".format(hash_value))
+
+    model_hash={}
+    model_hash[model_name]=str(hash_value)
+
+    # display contract information
+    mytoken.Show_ContractInfo()
+
+    # Read token data using call
+    token_data=mytoken.getIndexToken(model_name)
+    IndexToken.print_tokendata(token_data)
+
+    # Send transact
+    # mytoken.initIndexToken(model_name)
+    # mytoken.setIndexToken(model_name, str(hash_value))
+
+    # verify hash model
+    logger.info("Verify model: {} --- {}".format(model_name, model_hash[model_name]==token_data[1]) )
+
+def tx_evaluate():
+    # calculate hash value for model
+    model_name = "mnist_cnn.pt"
+    model=load_model(model_name)
+    hash_value=hash_model(model)
+
+    # evaluate tx committed time
+    token_data=mytoken.getIndexToken(model_name)
+    original_id = token_data[0] 
+
+    start_time=time.time()
+    mytoken.setIndexToken(model_name, str(hash_value))
+    while(True):
+        token_data=mytoken.getIndexToken(model_name)
+        new_id = token_data[0]
+        if(new_id > original_id ):
+            IndexToken.print_tokendata(token_data)
+            break
+        time.sleep(0.1)
+    exec_time=time.time()-start_time
+    logger.info("tx committed time: {:.3f}\n".format(exec_time, '.3f')) 
+    FileUtil.save_testlog('test_results', 'exec_tx_commit_ethereum.log', format(exec_time, '.3f'))
 
 if __name__ == "__main__":
-	# Logging setup
-	FORMAT = "%(asctime)s | %(message)s"
-	logging.basicConfig(format=FORMAT)
-	logger.setLevel(level=logging.DEBUG)
+    # Logging setup
+    FORMAT = "%(asctime)s | %(message)s"
+    logging.basicConfig(format=FORMAT)
+    logger.setLevel(level=logging.DEBUG)
 
-	test_main()
+    test_main()
+    test_hashmodel()
 
-	model=load_model("mnist_cnn.pt")
-	hash_value=hash_model(model)
-	logger.info("{} \n".format(hash_value))
+    # test_run = 1
 
-	model_hash={}
-	model_hash['mnist_cnn.pt']=str(hash_value)
-	logger.info( model_hash['mnist_cnn.pt']==str(hash_value) )
-	pass
+    # for i in range(test_run):
+    #     tx_evaluate()
+
+    pass
