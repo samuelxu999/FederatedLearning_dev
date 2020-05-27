@@ -281,8 +281,8 @@ async def main():
 			model_name = "{}/mnist_cnn_{}.pt".format(model_dir, curr_round)
 			torch.save(traced_model.state_dict(), model_name)
 
-			# decay learning rate
-			learning_rate = max(0.98 * learning_rate, args.lr * 0.01)
+		# decay learning rate
+		learning_rate = max(0.98 * learning_rate, args.lr * 0.01)
 
 	if args.save_model:
 	    torch.save(traced_model.state_dict(), "mnist_cnn_asyn.pt")
