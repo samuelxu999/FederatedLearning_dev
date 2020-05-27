@@ -138,7 +138,8 @@ def test_main():
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
 
     logger.info("module setup...\n")
-    model=load_model("mnist_cnn.pt", True)
+    # model=load_model("mnist_cnn.pt", True)
+    model=load_model("mnist_cnn_asyn.pt", True)
 
     logger.info("test_loader setup...\n")
     test_loader = torch.utils.data.DataLoader(
@@ -239,7 +240,7 @@ if __name__ == "__main__":
     logger.setLevel(level=logging.DEBUG)
 
     test_main()
-    test_hashmodel()
+    # test_hashmodel()
 
     # test_run = 1
 
