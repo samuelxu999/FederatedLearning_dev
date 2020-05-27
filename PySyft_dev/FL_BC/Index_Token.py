@@ -15,7 +15,7 @@ from utilities import DatetimeUtil, TypesUtil
 import json, datetime, time
 import logging
 
-logger = logging.getLogger("test")
+logger = logging.getLogger(__name__)
 
 class IndexToken(object):
 	def __init__(self, http_provider, contract_addr, contract_config):
@@ -182,5 +182,5 @@ if __name__ == "__main__":
 	logging.basicConfig(format=FORMAT)
 	logger.setLevel(level=logging.DEBUG)
 
-	# test_main()
-	tx_commit()
+	test_main()
+	# tx_commit()

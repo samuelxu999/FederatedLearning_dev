@@ -13,7 +13,7 @@ from syft.workers import websocket_client
 from syft.frameworks.torch.fl import utils
 
 LOG_INTERVAL = 25
-logger = logging.getLogger("run_websocket_client")
+logger = logging.getLogger(__name__)
 
 
 # Loss function
@@ -220,6 +220,7 @@ async def main():
 	traced_model = torch.jit.trace(model, torch.zeros([1, 1, 28, 28], dtype=torch.float).to(device))
 	learning_rate = args.lr
 
+	# Execute traning and test process round
 	for curr_round in range(1, args.training_rounds + 1):
 		logger.info("Training round %s/%s", curr_round, args.training_rounds)
 
@@ -239,6 +240,7 @@ async def main():
 		models = {}
 		loss_values = {}
 
+		# Apply evaluate model for each 10 round and at the last round
 		test_models = curr_round % 10 == 1 or curr_round == args.training_rounds
 		if test_models:
 			logger.info("Evaluating models")

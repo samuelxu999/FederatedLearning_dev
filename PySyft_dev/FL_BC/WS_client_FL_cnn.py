@@ -363,5 +363,10 @@ if __name__ == "__main__":
     LOG_LEVEL = logging.DEBUG
     logging.basicConfig(format=FORMAT, level=LOG_LEVEL)
 
+    # Websockets setup
+    websockets_logger = logging.getLogger("websockets")
+    websockets_logger.setLevel(logging.INFO)
+    websockets_logger.addHandler(logging.StreamHandler())
+
     main()
 

@@ -21,7 +21,7 @@ from Index_Token import IndexToken
 
 LOG_INTERVAL = 25
 
-logger = logging.getLogger("test")
+logger = logging.getLogger(__name__)
 
 #global variable
 addr_list = "./addr_list.json"
@@ -239,8 +239,11 @@ if __name__ == "__main__":
     logging.basicConfig(format=FORMAT)
     logger.setLevel(level=logging.DEBUG)
 
-    test_main()
-    # test_hashmodel()
+    indextoken_logger = logging.getLogger("Index_Token")
+    indextoken_logger.setLevel(logging.INFO)
+
+    # test_main()
+    test_hashmodel()
 
     # test_run = 1
 
