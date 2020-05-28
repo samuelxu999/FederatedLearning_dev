@@ -146,10 +146,9 @@ class EtherUtils(object):
         Args:
             model_name: model file
         Returns:
-            return verified result: True or False
+            Verified result: True or False
         '''
         # 1) Load model from file
-        # model_name = "mnist_cnn.pt"
         ls_time_exec = []
         start_time=time.time()
         model=ModelUtils.load_model(model_name)
@@ -163,7 +162,7 @@ class EtherUtils(object):
         model_hash={}
         model_hash[model_name]=str(hash_value)
 
-        # display contract information
+        # -------- display contract information -------------
         mytoken.Show_ContractInfo()
 
         # 3) Read token data using call
@@ -187,14 +186,14 @@ class EtherUtils(object):
         Args:
             model_name: model file
         Returns:
-            return tx committed reulst
+            tx committed reulst
         '''
-        # calculate hash value for model
-        # model_name = "mnist_cnn.pt"
+        # 1) Load model from file
         model=ModelUtils.load_model(model_name)
+        # 2) calculate hash value for model
         hash_value=ModelUtils.hash_model(model)
 
-        # evaluate tx committed time
+        # 3) evaluate tx committed time
         token_data=mytoken.getIndexToken(model_name)
         original_id = token_data[0] 
 
@@ -229,10 +228,9 @@ class TenderUtils(object):
         Args:
             model_name: model file
         Returns:
-            return verified result: True or False
+            Verified result: True or False
         '''
         # 1) Load model from file
-        # model_name = "mnist_cnn.pt"
         ls_time_exec = []
         start_time=time.time()
         model=ModelUtils.load_model(model_name)
@@ -252,6 +250,8 @@ class TenderUtils(object):
         start_time=time.time()
         query_ret=Tender_RPC.abci_query(query_json)
         ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+
+        # -------- parse value from response and display it ------------
         key_str=query_ret['result']['response']['key']
         value_str=query_ret['result']['response']['value']
         logger.info("Fetched model hash value:")
@@ -261,6 +261,7 @@ class TenderUtils(object):
         else:
             query_hash_value = ''
         logger.info("value: {}".format(query_hash_value))
+        
         # Prepare log messgae
         str_time_exec=" ".join(ls_time_exec)
         FileUtil.save_testlog('test_results', 'exec_verify_hashmodel_tendermint.log', str_time_exec)
@@ -276,17 +277,18 @@ class TenderUtils(object):
         Args:
             model_name: model file
         Returns:
-            return tx committed reulst
+            tx committed reulst
         '''
-        # calculate hash value for model
-        # model_name = "mnist_cnn.pt"
+        # 1) Load model from file
         model=ModelUtils.load_model(model_name)
+
+        # 2) calculate hash value for model
         hash_value=ModelUtils.hash_model(model)
 
-        # evaluate tx committed time
+        # 3) evaluate tx committed time
         start_time=time.time()
         logger.info("tx hashed model: {} to blockchain...\n".format(model_name)) 
-        # prepare parameter for tx
+        # -------- prepare parameter for tx ------------
         tx_json = {}
         key_str = model_name
         value_str = TypesUtil.string_to_hex(hash_value)
