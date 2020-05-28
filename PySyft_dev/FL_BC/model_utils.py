@@ -9,7 +9,8 @@ import torch.nn.functional as F
 from utilities import TypesUtil, FileUtil
 from wrapper_pyca import Crypto_Hash
 from Index_Token import IndexToken 
-from Tender_RPC import Tender_RPC 
+from Tender_RPC import Tender_RPC
+from Micro_RPC import Micro_RPC 
 
 logger = logging.getLogger(__name__)
 # indextoken_logger = logging.getLogger("Index_Token")
@@ -25,7 +26,7 @@ contract_config = "./contracts/IndexToken.json"
 mytoken=IndexToken(http_provider, contract_addr, contract_config)
 
 # tx commit timeout.
-TX_TIMEOUT = 30
+TX_TIMEOUT = 60
 
 # Model
 class Net(nn.Module):
@@ -302,3 +303,107 @@ class TenderUtils(object):
 
         return tx_ret
 
+class MicroUtils(object):
+    @staticmethod
+    def get_info(target_address="0.0.0.0:8080"):
+        json_response = Micro_RPC.micro_info(target_address)
+        for _item, _value in json_response.items():
+            logger.info("{}    {}\n".format(_item, _value))
+
+    @staticmethod
+    def verify_hashmodel(model_name, target_address="0.0.0.0:8080"):
+        '''
+        Verify model hash value by querying blockchain
+
+        Args:
+            model_name: model file
+        Returns:
+            Verified result: True or False
+        '''
+        # 1) Load model from file
+        ls_time_exec = []
+        start_time=time.time()
+        model=ModelUtils.load_model(model_name)
+        ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+
+        # 2) Calculate hash value of model
+        start_time=time.time()
+        hash_value=ModelUtils.hash_model(model)
+        ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+
+        model_hash={}
+        model_hash[model_name]=str(hash_value)
+
+        # 3) Read token data using call
+        query_json = {}
+        value_str = str(hash_value)
+        query_json[model_name]=value_str
+        # print(query_json)
+        start_time=time.time()
+        query_ret=Micro_RPC.tx_query(target_address, query_json)
+        ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+
+        # # -------- parse value from response and display it ------------
+        verify_result = False
+        # print(query_ret)
+        logger.info("Fetched model hash value:")
+        if(query_ret!={}):
+            tx_json = TypesUtil.string_to_json(query_ret)
+            for _name, _value in tx_json.items():
+                logger.info("model: {}".format(_name) )
+                logger.info("value: {}".format(_value) )
+            verify_result = True
+
+        
+        # Prepare log messgae
+        str_time_exec=" ".join(ls_time_exec)
+        FileUtil.save_testlog('test_results', 'exec_verify_hashmodel_microchain.log', str_time_exec)
+
+        # 4) return verify hash model result
+        return verify_result
+
+    @staticmethod
+    def tx_evaluate(model_name, target_address="0.0.0.0:8080"):
+        '''
+        Launch tx and evaluate tx committed time
+
+        Args:
+            model_name: model file
+        Returns:
+            tx committed reulst
+        '''
+        # 1) Load model from file
+        model=ModelUtils.load_model(model_name)
+
+        # 2) calculate hash value for model
+        hash_value=ModelUtils.hash_model(model)
+
+        # 3) evaluate tx committed time
+        tx_time = 0.0
+        start_time=time.time()
+        logger.info("tx hashed model: {} to blockchain...\n".format(model_name)) 
+        # -------- prepare transaction data ------------
+        tx_json = {}
+        # value_str = TypesUtil.string_to_hex(hash_value)
+        value_str = str(hash_value)
+        tx_json[model_name]=value_str
+        # print(tx_json)
+        tx_ret=Micro_RPC.broadcast_tx_commit(target_address, tx_json)
+
+        while(True):
+            query_ret=Micro_RPC.tx_query(target_address, tx_json)
+
+            if( query_ret!={} ):
+                break
+            time.sleep(0.5)
+            tx_time +=0.5
+            if(tx_time>=TX_TIMEOUT):
+                logger.info("Timeout, tx commit fail.") 
+                return False
+
+        exec_time=time.time()-start_time
+        logger.info("tx committed time: {:.3f}\n".format(exec_time, '.3f')) 
+        FileUtil.save_testlog('test_results', 'exec_tx_commit_microchain.log', format(exec_time, '.3f'))
+
+        # return tx_ret
+        return tx_ret

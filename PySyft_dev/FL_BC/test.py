@@ -8,7 +8,7 @@ import torch
 from torchvision import datasets
 from torchvision import transforms
 
-from model_utils import ModelUtils, EtherUtils, TenderUtils
+from model_utils import ModelUtils, EtherUtils, TenderUtils, MicroUtils
 
 LOG_INTERVAL = 25
 
@@ -28,13 +28,13 @@ def define_and_get_arguments(args=sys.argv[1:]):
     parser.add_argument("--seed", type=int, default=1, help="seed used for randomization")
     parser.add_argument("--tx_round", type=int, default=1, help="tx evaluation round")
     parser.add_argument("--test_network", type=int, default=0, 
-                        help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint")
+                        help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint, 3-Microchain")
+    parser.add_argument("--test_func", type=int, default=0, 
+                        help="Execute test function: 0-test_model, 1-test_hashmodel")
     args = parser.parse_args(args=args)
     return args
 
-def test_model():
-    args = define_and_get_arguments()
-
+def test_model(args):
     use_cuda = args.cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
@@ -65,9 +65,7 @@ def test_model():
     ModelUtils.evaluate_model(model, device, test_loader)
 
 
-def test_hashmodel(model_name):
-    args = define_and_get_arguments()
-
+def test_hashmodel(model_name, args):
     for i in range(args.tx_round):
         if(args.test_network==1):
             # logger.info("Round : {}".format(i+1) )
@@ -80,7 +78,7 @@ def test_hashmodel(model_name):
             # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
             #                                                 EtherUtils.tx_evaluate(model_name)))
         elif(args.test_network==2):
-            # -------------------------- Tender test ----------------------------------
+            # -------------------------- Tendermint test ----------------------------------
             # verify hash model
             logger.info("Verify model: '{}' --- {}\n".format(model_name, 
                                                             TenderUtils.verify_hashmodel(model_name)) )
@@ -88,21 +86,35 @@ def test_hashmodel(model_name):
             # # call tx_evaluate() and record tx_commit time
             # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
             #                                                 TenderUtils.tx_evaluate(model_name)))
+        elif(args.test_network==3):
+            # -------------------------- Microchain test ----------------------------------
+            # MicroUtils.get_info()
+            # verify hash model
+            logger.info("Verify model: '{}' --- {}\n".format(model_name, 
+                                                            MicroUtils.verify_hashmodel(model_name)) )
+
+            # # call tx_evaluate() and record tx_commit time
+            # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
+            #                                                 MicroUtils.tx_evaluate(model_name)))
         else:
             pass
 
 if __name__ == "__main__":
-    # Logging setup
-    FORMAT = "%(asctime)s | %(message)s"
-    logging.basicConfig(format=FORMAT)
-    logger.setLevel(level=logging.DEBUG)
+	# Logging setup
+	FORMAT = "%(asctime)s | %(message)s"
+	logging.basicConfig(format=FORMAT)
+	logger.setLevel(level=logging.DEBUG)
 
-    modelUtils_logger = logging.getLogger("model_utils")
-    modelUtils_logger.setLevel(logging.INFO)
-    indextoken_logger = logging.getLogger("Index_Token")
-    indextoken_logger.setLevel(logging.INFO)
+	modelUtils_logger = logging.getLogger("model_utils")
+	modelUtils_logger.setLevel(logging.INFO)
+	indextoken_logger = logging.getLogger("Index_Token")
+	indextoken_logger.setLevel(logging.INFO)
 
-    test_model()
-    test_hashmodel("mnist_cnn.pt")
+	args = define_and_get_arguments()
 
-    pass
+	if(args.test_func==0):
+		test_model(args)
+	elif(args.test_func==1):
+		test_hashmodel("mnist_cnn.pt", args)
+	else:
+		pass
