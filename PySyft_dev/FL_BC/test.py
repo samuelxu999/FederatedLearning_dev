@@ -8,7 +8,7 @@ import torch
 from torchvision import datasets
 from torchvision import transforms
 
-from model_utils import ModelUtils, EtherUtils
+from model_utils import ModelUtils, EtherUtils, TenderUtils
 
 LOG_INTERVAL = 25
 
@@ -27,6 +27,8 @@ def define_and_get_arguments(args=sys.argv[1:]):
     parser.add_argument("--cuda", action="store_true", help="use cuda")
     parser.add_argument("--seed", type=int, default=1, help="seed used for randomization")
     parser.add_argument("--tx_round", type=int, default=1, help="tx evaluation round")
+    parser.add_argument("--test_network", type=int, default=0, 
+                        help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint")
     args = parser.parse_args(args=args)
     return args
 
@@ -42,7 +44,7 @@ def test_model():
 
     logger.info("module setup...\n")
     # model=load_model("mnist_cnn.pt", True)
-    model=ModelUtils.load_model("mnist_cnn_asyn.pt", True)
+    model=ModelUtils.load_model("mnist_cnn.pt", True)
 
     logger.info("test_loader setup...\n")
     test_loader = torch.utils.data.DataLoader(
@@ -67,14 +69,27 @@ def test_hashmodel(model_name):
     args = define_and_get_arguments()
 
     for i in range(args.tx_round):
-        logger.info("Round : {}".format(i+1) )
-        # verify hash model
-        logger.info("Verify model: '{}' --- {}\n".format(model_name, 
-                                                        EtherUtils.verify_hashmodel(model_name)) )
-        
-        # # call tx_evaluate() and record tx_commit time
-        # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
-        #                                                 EtherUtils.tx_evaluate(model_name)))
+        if(args.test_network==1):
+            # logger.info("Round : {}".format(i+1) )
+            # -------------------------- Ethereum test ----------------------------------
+            # verify hash model
+            logger.info("Verify model: '{}' --- {}\n".format(model_name, 
+                                                            EtherUtils.verify_hashmodel(model_name)) )
+            
+            # # call tx_evaluate() and record tx_commit time
+            # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
+            #                                                 EtherUtils.tx_evaluate(model_name)))
+        elif(args.test_network==2):
+            # -------------------------- Tender test ----------------------------------
+            # verify hash model
+            logger.info("Verify model: '{}' --- {}\n".format(model_name, 
+                                                            TenderUtils.verify_hashmodel(model_name)) )
+
+            # # call tx_evaluate() and record tx_commit time
+            # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
+            #                                                 TenderUtils.tx_evaluate(model_name)))
+        else:
+            pass
 
 if __name__ == "__main__":
     # Logging setup

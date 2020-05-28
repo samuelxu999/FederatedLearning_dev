@@ -14,6 +14,7 @@ import hashlib
 import json
 import pickle
 import glob, os, fnmatch
+import codecs
 
 '''
 FileUtil class for handling file data
@@ -278,6 +279,27 @@ class TypesUtil(object):
 	def bytes_to_string(byte_data):
 		str_data=byte_data.decode(encoding='UTF-8')
 		return str_data
+
+	# string-base64 to string-ASCII 
+	@staticmethod
+	def base64_to_ascii(str_data):
+		bytes_data=str_data.encode(encoding='UTF-8')
+		ascii_str=codecs.decode(bytes_data, 'base64').decode('ascii')
+		return ascii_str
+
+	# curl tx string to json
+	@staticmethod
+	def tx_to_json(tx_str):
+		json_str = tx_str.replace("'",'"')
+		json_data = json.loads(json_str)
+		return json_data
+
+	# curl tx string to json
+	@staticmethod
+	def json_to_tx(json_data):
+		json_str = json.dumps(json_data)
+		tx_str = json_str.replace('"', "'")
+		return tx_str
 		
 	#string to json
 	@staticmethod

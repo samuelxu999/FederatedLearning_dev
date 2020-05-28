@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from utilities import TypesUtil, FileUtil
 from wrapper_pyca import Crypto_Hash
 from Index_Token import IndexToken 
+from Tender_RPC import Tender_RPC 
 
 logger = logging.getLogger(__name__)
 # indextoken_logger = logging.getLogger("Index_Token")
@@ -49,6 +50,15 @@ class ModelUtils(object):
 
     @staticmethod
     def load_model(model_path, isShowInfo=False):
+        '''
+        Load model data given model file (*.pt)
+
+        Args:
+            model_path: model file path
+            isShowInfo: display model information or not
+        Returns:
+            model: tensor model object
+        '''
         device = torch.device("cpu")
         model = Net().to(device)
         if( os.path.isfile(model_path) ):
@@ -68,6 +78,16 @@ class ModelUtils(object):
 
     @staticmethod
     def evaluate_model(model, device, test_loader):
+        '''
+        Evaluate model and output loss and accuracy
+
+        Args:
+            model: tensor model object
+            device: device selection for torch
+            test_loader: test data loader object
+        Returns:
+            return accuracy and test_loss
+        '''
         model.eval()
         test_loss = 0
         correct = 0
@@ -87,6 +107,7 @@ class ModelUtils(object):
                 test_loss, correct, len(test_loader.dataset), accuracy
             )
         )
+        return accuracy, test_loss
 
     @staticmethod
     def hash_model(model):
@@ -119,6 +140,14 @@ class ModelUtils(object):
 class EtherUtils(object):
     @staticmethod
     def verify_hashmodel(model_name):
+        '''
+        Verify model hash value by querying blockchain
+
+        Args:
+            model_name: model file
+        Returns:
+            return verified result: True or False
+        '''
         # 1) Load model from file
         # model_name = "mnist_cnn.pt"
         ls_time_exec = []
@@ -129,7 +158,6 @@ class EtherUtils(object):
         # 2) Calculate hash value of model
         start_time=time.time()
         hash_value=ModelUtils.hash_model(model)
-        model=ModelUtils.load_model(model_name)
         ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
 
         model_hash={}
@@ -142,7 +170,6 @@ class EtherUtils(object):
         start_time=time.time()
         token_data=mytoken.getIndexToken(model_name)
         IndexToken.print_tokendata(token_data)
-        model=ModelUtils.load_model(model_name)
         ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
 
         # Prepare log messgae
@@ -154,6 +181,14 @@ class EtherUtils(object):
 
     @staticmethod
     def tx_evaluate(model_name):
+        '''
+        Launch tx and evaluate tx committed time
+
+        Args:
+            model_name: model file
+        Returns:
+            return tx committed reulst
+        '''
         # calculate hash value for model
         # model_name = "mnist_cnn.pt"
         model=ModelUtils.load_model(model_name)
@@ -184,4 +219,84 @@ class EtherUtils(object):
         FileUtil.save_testlog('test_results', 'exec_tx_commit_ethereum.log', format(exec_time, '.3f'))
 
         return True
+
+class TenderUtils(object):
+    @staticmethod
+    def verify_hashmodel(model_name):
+        '''
+        Verify model hash value by querying blockchain
+
+        Args:
+            model_name: model file
+        Returns:
+            return verified result: True or False
+        '''
+        # 1) Load model from file
+        # model_name = "mnist_cnn.pt"
+        ls_time_exec = []
+        start_time=time.time()
+        model=ModelUtils.load_model(model_name)
+        ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+
+        # 2) Calculate hash value of model
+        start_time=time.time()
+        hash_value=ModelUtils.hash_model(model)
+        ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+
+        model_hash={}
+        model_hash[model_name]=str(hash_value)
+
+        # 3) Read token data using call
+        query_json = {}
+        query_json['data']='"' + model_name +'"'
+        start_time=time.time()
+        query_ret=Tender_RPC.abci_query(query_json)
+        ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+        key_str=query_ret['result']['response']['key']
+        value_str=query_ret['result']['response']['value']
+        logger.info("Fetched model hash value:")
+        logger.info("model: {}".format(TypesUtil.base64_to_ascii(key_str)) )
+        if( value_str!= None):
+            query_hash_value = TypesUtil.hex_to_string(TypesUtil.base64_to_ascii(value_str))
+        else:
+            query_hash_value = ''
+        logger.info("value: {}".format(query_hash_value))
+        # Prepare log messgae
+        str_time_exec=" ".join(ls_time_exec)
+        FileUtil.save_testlog('test_results', 'exec_verify_hashmodel_tendermint.log', str_time_exec)
+
+        # 4) return verify hash model result
+        return model_hash[model_name]==str(query_hash_value)
+
+    @staticmethod
+    def tx_evaluate(model_name):
+        '''
+        Launch tx and evaluate tx committed time
+
+        Args:
+            model_name: model file
+        Returns:
+            return tx committed reulst
+        '''
+        # calculate hash value for model
+        # model_name = "mnist_cnn.pt"
+        model=ModelUtils.load_model(model_name)
+        hash_value=ModelUtils.hash_model(model)
+
+        # evaluate tx committed time
+        start_time=time.time()
+        logger.info("tx hashed model: {} to blockchain...\n".format(model_name)) 
+        # prepare parameter for tx
+        tx_json = {}
+        key_str = model_name
+        value_str = TypesUtil.string_to_hex(hash_value)
+        tx_data = key_str + "=" + value_str 
+        # --------- build parameter string: tx=? --------
+        tx_json['tx']='"' + tx_data +'"' 
+        tx_ret=Tender_RPC.broadcast_tx_commit(tx_json)
+        exec_time=time.time()-start_time
+        logger.info("tx committed time: {:.3f}\n".format(exec_time, '.3f')) 
+        FileUtil.save_testlog('test_results', 'exec_tx_commit_tendermint.log', format(exec_time, '.3f'))
+
+        return tx_ret
 
