@@ -27,10 +27,14 @@ def define_and_get_arguments(args=sys.argv[1:]):
     parser.add_argument("--cuda", action="store_true", help="use cuda")
     parser.add_argument("--seed", type=int, default=1, help="seed used for randomization")
     parser.add_argument("--tx_round", type=int, default=1, help="tx evaluation round")
+    parser.add_argument("--wait_interval", type=int, default=1, 
+                        help="break time between tx evaluate step.")
     parser.add_argument("--test_network", type=int, default=0, 
                         help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint, 3-Microchain")
     parser.add_argument("--test_func", type=int, default=0, 
                         help="Execute test function: 0-test_model, 1-test_hashmodel")
+    parser.add_argument("--query_tx", type=int, default=0, 
+                        help="Query tx or commit tx: 0-Query, 1-Commit")
     args = parser.parse_args(args=args)
     return args
 
@@ -67,37 +71,42 @@ def test_model(args):
 
 def test_hashmodel(model_name, args):
     for i in range(args.tx_round):
+        logger.info("Test run:{}".format(i+1))
         if(args.test_network==1):
             # logger.info("Round : {}".format(i+1) )
             # -------------------------- Ethereum test ----------------------------------
-            # verify hash model
-            logger.info("Verify model: '{}' --- {}\n".format(model_name, 
+            if(args.query_tx==0):
+                # verify hash model
+                logger.info("Verify model: '{}' --- {}\n".format(model_name, 
                                                             EtherUtils.verify_hashmodel(model_name)) )
-            
-            # # call tx_evaluate() and record tx_commit time
-            # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
-            #                                                 EtherUtils.tx_evaluate(model_name)))
+            else:                
+                # call tx_evaluate() and record tx_commit time
+                logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
+                                                            EtherUtils.tx_evaluate(model_name)))
         elif(args.test_network==2):
             # -------------------------- Tendermint test ----------------------------------
-            # verify hash model
-            logger.info("Verify model: '{}' --- {}\n".format(model_name, 
+            if(args.query_tx==0):
+                # verify hash model
+                logger.info("Verify model: '{}' --- {}\n".format(model_name, 
                                                             TenderUtils.verify_hashmodel(model_name)) )
-
-            # # call tx_evaluate() and record tx_commit time
-            # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
-            #                                                 TenderUtils.tx_evaluate(model_name)))
+            else:
+                # call tx_evaluate() and record tx_commit time
+                logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
+                                                            TenderUtils.tx_evaluate(model_name)))
         elif(args.test_network==3):
             # -------------------------- Microchain test ----------------------------------
             # MicroUtils.get_info()
-            # verify hash model
-            logger.info("Verify model: '{}' --- {}\n".format(model_name, 
+            if(args.query_tx==0):
+                # verify hash model
+                logger.info("Verify model: '{}' --- {}\n".format(model_name, 
                                                             MicroUtils.verify_hashmodel(model_name)) )
-
-            # # call tx_evaluate() and record tx_commit time
-            # logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
-            #                                                 MicroUtils.tx_evaluate(model_name)))
+            else:
+                # call tx_evaluate() and record tx_commit time
+                logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
+                                                            MicroUtils.tx_evaluate(model_name)))
         else:
             pass
+        time.sleep(args.wait_interval)
 
 if __name__ == "__main__":
 	# Logging setup
@@ -115,6 +124,6 @@ if __name__ == "__main__":
 	if(args.test_func==0):
 		test_model(args)
 	elif(args.test_func==1):
-		test_hashmodel("mnist_cnn.pt", args)
+		test_hashmodel("mnist_cnn1.pt", args)
 	else:
 		pass
