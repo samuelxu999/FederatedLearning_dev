@@ -82,7 +82,10 @@ D) Build pytorch and install
 	# Install Pytorch
 	sudo -E python3 setup.py install
 	
-	# (optional) Always build a wheel and keep it somewhere safe because you have already build from source.
+	# (optional) Always build a wheel and keep it somewhere safe because you have already 
+	build from source. 
+	# The .whl file will be in pytorch/dist folder.
+	# If run into unknow bdist_wheel, install wheel: python3.x -m pip install wheel
 	sudo -E python3 setup.py bdist_wheel
 	
 	# (optional) Everytime you face an error, do clean up the corrupted builds:
@@ -93,15 +96,18 @@ E) To test your installation:
 	python3
     >>> import torch
     >>> print(torch.__version__)
-	
+
 
 ---------------------------------------------------------------------------------------------
 								pytorch setup (install from *.whl)
 ---------------------------------------------------------------------------------------------
 A) Download *.whl from web. We provde torch 1.4.0 wheel at root of project folder
 
-B) In stall torch using *.whl:
-	pip3 install torch-1.4.0a0+7963631-cp37-cp37m-linux_armv7l.whl
+B) Install torch using *.whl (Rpi 4 and Python3.7+):
+	sudo python3.x -m pip install torch-1.4.0a0+7963631-cp37-cp37m-linux_armv7l.whl
+
+C) Install torchversion:
+	sudo python3.x -m pip install torchvision==0.2.2.post3
 
 ---------------------------------------------------------------------------------------------
 								PySyft setup
@@ -113,13 +119,16 @@ A) Get the latest version of PySyft:
 	# install a specific branch e.g. 0.1.23a
 	git checkout 0.1.23a
 	
-B) Install PySyft's dependencies. (before execute, modify requirements,txt to remove "torch' and "torchversion" items)
+B) Install PySyft's dependencies. (before execute, modify requirements.txt to remove "torch' and set "torchvision==0.2.2.post3" items)
     # for v0.1.23a
-	pip3 install -r requirements.txt
+	sudo python3.x -m pip install -r requirements.txt
 	
 	# for v0.2.4
-	pip install -r pip-dep/requirements.txt
-	pip install -r pip-dep/requirements_udacity.txt
+	sudo python3.x -m pip install -r pip-dep/requirements.txt
+	sudo python3.x -m pip install -r pip-dep/requirements_udacity.txt
+
+	# upgrade tensor_flow
+	sudo pip3 install --upgrade tensorflow==1.14.0
 	
 C) build and install syft
 	sudo -E python3 setup.py build
