@@ -3,12 +3,12 @@ import logging
 import argparse
 import sys
 import os
-
+import numpy as np
 import torch
 from torchvision import datasets
 from torchvision import transforms
 
-from model_utils import ModelUtils, EtherUtils, TenderUtils, MicroUtils
+from model_utils import ModelUtils, EtherUtils, TenderUtils, MicroUtils, DatasetUtils
 
 LOG_INTERVAL = 25
 
@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 def define_and_get_arguments(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(
         description="Run federated learning using websocket client workers."
+    )
+    parser.add_argument(
+        "--id", type=str, help="name (id) of the websocket server worker, e.g. --id alice"
     )
     parser.add_argument("--batch_size", type=int, default=32, help="batch size of the training")
     parser.add_argument(
@@ -108,22 +111,59 @@ def test_hashmodel(model_name, args):
             pass
         time.sleep(args.wait_interval)
 
+def test_hashdataset(args, training=False):
+
+    KEEP_LABELS_DICT = {
+        "alice": [0, 1, 2, 3],
+        "bob": [4, 5, 6],
+        "charlie": [7, 8, 9],
+        "testing": list(range(10)),
+        None: list(range(10)),
+    }
+
+    ls_time_exec = []
+    # 1) Load MINST datset
+    start_time=time.time()
+    mnist_dataset = DatasetUtils.load_dataset("./data", training)
+    ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+
+    # show dataset information
+    logger.info("dataset shape: %s", mnist_dataset.data.shape)
+    keep_labels=KEEP_LABELS_DICT[args.id]
+    indices = np.isin(mnist_dataset.targets, keep_labels).astype("uint8")
+
+    count = [0] * 10
+    logger.info("number of true indices: %s", indices.sum())
+    for i in range(10):
+        if(i in keep_labels):
+            count[i] = (mnist_dataset.targets == i).sum().item()
+        logger.info("      %s: %s", i, count[i])
+
+    # 2) hash dataset
+    start_time=time.time()
+    logger.info(DatasetUtils.hash_dataset(mnist_dataset, [0]))
+    ls_time_exec.append( format( time.time()-start_time, '.3f' ) ) 
+
+    logger.info("load dataset: {} s    hash dataset: {} s".format(ls_time_exec[0], ls_time_exec[1]))
+
 if __name__ == "__main__":
-	# Logging setup
-	FORMAT = "%(asctime)s | %(message)s"
-	logging.basicConfig(format=FORMAT)
-	logger.setLevel(level=logging.DEBUG)
+    # Logging setup
+    FORMAT = "%(asctime)s | %(message)s"
+    logging.basicConfig(format=FORMAT)
+    logger.setLevel(level=logging.DEBUG)
 
-	modelUtils_logger = logging.getLogger("model_utils")
-	modelUtils_logger.setLevel(logging.INFO)
-	indextoken_logger = logging.getLogger("Index_Token")
-	indextoken_logger.setLevel(logging.INFO)
+    modelUtils_logger = logging.getLogger("model_utils")
+    modelUtils_logger.setLevel(logging.INFO)
+    indextoken_logger = logging.getLogger("Index_Token")
+    indextoken_logger.setLevel(logging.INFO)
 
-	args = define_and_get_arguments()
+    args = define_and_get_arguments()
 
-	if(args.test_func==0):
-		test_model(args)
-	elif(args.test_func==1):
-		test_hashmodel("mnist_cnn1.pt", args)
-	else:
-		pass
+    if(args.test_func==0):
+        test_model(args)
+    elif(args.test_func==1):
+        test_hashmodel("mnist_cnn1.pt", args)
+    elif(args.test_func==2):
+        test_hashdataset(args)
+    else:
+    	pass

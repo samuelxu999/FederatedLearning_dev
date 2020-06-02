@@ -5,6 +5,8 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import datasets
+from torchvision import transforms
 
 from utilities import TypesUtil, FileUtil
 from wrapper_pyca import Crypto_Hash
@@ -137,6 +139,60 @@ class ModelUtils(object):
     	hash_value = Crypto_Hash.generate_hash(bytes_block)
 
     	return hash_value
+
+class DatasetUtils(object):
+
+    @staticmethod
+    def load_dataset(dataset_path, training):
+        '''
+        Load MINST datset given dataset path
+
+        Args:
+            dataset_path: dataset folder path
+            training: load training data or testing data
+        Returns:
+            model: tensor model object
+        '''
+        _dataset = datasets.MNIST(
+            root=dataset_path,
+            train=training,
+            download=True,
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            ),
+        )
+        return _dataset
+
+    @staticmethod
+    def hash_dataset(dataset, keep_labels):
+        '''
+        Generate hash value of loaded dataset (tensor-->numpy-->string)
+
+        Args:
+            dataset: dataset object
+
+        Returns:
+            Binary hash value
+        '''
+        str_dataset=[]
+        # For each model's state_dict to get str_dataset
+        logger.info("For each dataset's touple to get str_dataset...\n")
+        i=0
+        for data_tensor, target_tensor in dataset:
+            if(target_tensor in keep_labels):
+                # conver to touple [data, target]
+                value_np = [data_tensor, target_tensor]
+                # conver to string, which is used for hash function
+                str_dataset.append( str(value_np) )
+
+        # convert string to byte before hash operation
+        bytes_block = TypesUtil.string_to_bytes(str(str_dataset))
+
+        # generate hash value based on byte string
+        hash_value = Crypto_Hash.generate_hash(bytes_block)
+
+        return hash_value
+
 
 class EtherUtils(object):
     @staticmethod
