@@ -185,7 +185,7 @@ def test_maskedModel(args):
 			logger.info("Test run:{}".format(i+1))
 			start_time=time.time()
 			masked_model = ModelUtils.mask_model(model, 0.1)
-			str_time_exec= format( time.time()-start_time, '.3f' ) 
+			str_time_exec= format( (time.time()-start_time)*1000, '.3f' ) 
 			FileUtil.save_testlog('test_results', 'mask_model.log', str_time_exec)
 
 			if(args.eval_model):
@@ -205,7 +205,7 @@ def test_maskedModel(args):
 
 			start_time=time.time()
 			fedavg_model = ModelUtils.FedAvg_model(model_list)
-			str_time_exec= format( time.time()-start_time, '.3f' ) 
+			str_time_exec= format( (time.time()-start_time)*1000, '.3f' )
 			FileUtil.save_testlog('test_results', 'sum_model.log', str_time_exec)
 
 			if(args.eval_model):
