@@ -1,6 +1,7 @@
 import time
 import logging
 import os
+import copy
 
 import torch
 import torch.nn as nn
@@ -139,6 +140,58 @@ class ModelUtils(object):
     	hash_value = Crypto_Hash.generate_hash(bytes_block)
 
     	return hash_value
+
+    @staticmethod
+    def mask_model(model, random_seed):
+        '''
+        Add masked pad to model for secure aggegration test
+
+        Args:
+            model: tensor model object
+            random_seed: random number to sketch a mask pad
+
+        Returns:
+            masked_model: return masked model object
+        '''
+        
+        masked_model = copy.deepcopy(model)
+        state_dict = masked_model.state_dict()
+        # For each model's state_dict to get str_model
+        for param_tensor in state_dict:
+            value_tensor = masked_model.state_dict()[param_tensor]
+            # add mask pad to paramters
+            state_dict[param_tensor] = value_tensor + random_seed
+
+        # update state dict in model
+        masked_model.load_state_dict(state_dict)
+
+        return masked_model
+
+    @staticmethod
+    def FedAvg_model(list_model):
+        '''
+        Compute FedAvg model based on sum of list of models
+
+        Args:
+            list_model: tensor model object list
+
+        Returns:
+            fedavg_model: return averaged sum of model objects
+        '''
+        
+        fedavg_model = copy.deepcopy(list_model[0])
+        state_dict = fedavg_model.state_dict()
+        for model in list_model[1:]:
+            for param_tensor in state_dict:
+                value_tensor = model.state_dict()[param_tensor]
+                state_dict[param_tensor] += value_tensor
+
+            # average torch tensor
+            state_dict[param_tensor] = (state_dict[param_tensor]/len(list_model))
+
+        # update state dict in model
+        fedavg_model.load_state_dict(state_dict)
+        return fedavg_model
 
 class DatasetUtils(object):
 
