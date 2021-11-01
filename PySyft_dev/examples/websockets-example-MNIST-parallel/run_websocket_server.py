@@ -9,10 +9,10 @@ import syft as sy
 from syft.workers import websocket_server
 
 KEEP_LABELS_DICT = {
-    "alice": [0, 1, 2, 3],
-    "bob": [4, 5, 6],
-    "charlie": [7, 8, 9],
-    "testing": list(range(10)),
+    "t03": [0, 1, 2, 3],
+    "t46": [4, 5, 6],
+    "t79": [7, 8, 9],
+    "test": list(range(10)),
     None: list(range(10)),
 }
 
@@ -91,7 +91,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--host", type=str, default="localhost", help="host for the connection")
     parser.add_argument(
-        "--id", type=str, help="name (id) of the websocket server worker, e.g. --id alice"
+        "--id", type=str, help="name (id) of the websocket server worker, e.g. --id Pi4_R1_1"
+    )
+    parser.add_argument(
+        "--label_id", type=str, help="keep labels id for select training data set, e.g. --label_id alice"
     )
     parser.add_argument(
         "--testing",
@@ -115,6 +118,6 @@ if __name__ == "__main__":
         port=args.port,
         hook=hook,
         verbose=args.verbose,
-        keep_labels=KEEP_LABELS_DICT[args.id],
+        keep_labels=KEEP_LABELS_DICT[args.label_id],
         training=not args.testing,
     )
