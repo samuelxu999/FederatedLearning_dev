@@ -15,6 +15,7 @@ import syft as sy
 from syft.workers.websocket_client import WebsocketClientWorker
 from syft.workers.virtual import VirtualWorker
 from syft.frameworks.torch.fl import utils
+from utilities import FileUtil
 
 logger = logging.getLogger(__name__)
 LOG_INTERVAL = 25
@@ -199,6 +200,7 @@ def wroker_config(args):
     hook = sy.TorchHook(torch)
 
     logger.info("Worker setup.\n")
+    workers = []
     if args.use_virtual:
         alice = VirtualWorker(id="alice", hook=hook, verbose=args.verbose)
         bob = VirtualWorker(id="bob", hook=hook, verbose=args.verbose)
@@ -212,19 +214,16 @@ def wroker_config(args):
             charlie = WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
             workers = [alice, bob, charlie]
         else:
-            kwargs_websocket_Pi4_R1_1 = {"host": "128.226.77.157", "hook": hook}
-            Pi4_R1_1 = WebsocketClientWorker(id="Pi4_R1_1", port=8777, **kwargs_websocket_Pi4_R1_1)
-
-            kwargs_websocket_Pi4_R1_2 = {"host": "128.226.78.128", "hook": hook}
-            Pi4_R1_2 = WebsocketClientWorker(id="Pi4_R1_2", port=8777, **kwargs_websocket_Pi4_R1_2)
-
-            kwargs_websocket_Pi4_R1_3 = {"host": "128.226.88.155", "hook": hook}
-            Pi4_R1_3 = WebsocketClientWorker(id="Pi4_R1_3", port=8777, **kwargs_websocket_Pi4_R1_3)
-
-            kwargs_websocket_Pi4_R1_4 = {"host": "128.226.79.31", "hook": hook}
-            Pi4_R1_4 = WebsocketClientWorker(id="Pi4_R1_4", port=8777, **kwargs_websocket_Pi4_R1_4)
-
-            workers = [Pi4_R1_1, Pi4_R1_2, Pi4_R1_3, Pi4_R1_4]
+            ## load workers data from json file.
+            workers_json = FileUtil.JSON_load("./config_data/FL-syn-workers.json")
+            ## for each items to setup WebsocketClientWorker
+            for worker in workers_json:
+                logger.debug("Setup worker:{}".format(worker))
+                kwargs_websocket = {"host": workers_json[worker]['ip'], "hook": hook}
+                worker_object = WebsocketClientWorker(id=workers_json[worker]['name'], 
+                                                        port=workers_json[worker]['port'], 
+                                                        **kwargs_websocket)
+                workers.append(worker_object)
 
     return workers
 
@@ -298,6 +297,8 @@ def main():
     args = define_and_get_arguments()
 
     workers=wroker_config(args)
+
+    # return
 
     use_cuda = args.cuda and torch.cuda.is_available()
 
