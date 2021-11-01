@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import syft as sy
 from syft.workers import websocket_client
 from syft.frameworks.torch.fl import utils
+from utilities import FileUtil
 
 LOG_INTERVAL = 25
 logger = logging.getLogger(__name__)
@@ -173,38 +174,48 @@ def evaluate_model_on_worker(
         f"{100.0 * correct / len_dataset:.2f}",
     )
 
+def wroker_config(args):
+	hook = sy.TorchHook(torch)
+
+	worker_instances = []
+	if(args.localworkers):
+		## ----------------------------- This is for localhost workers --------------------------------
+		kwargs_websocket = {"hook": hook, "verbose": args.verbose, "host": "0.0.0.0"}
+		alice = websocket_client.WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
+		bob = websocket_client.WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
+		charlie = websocket_client.WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
+		## new test node
+		testing = websocket_client.WebsocketClientWorker(id="testing", port=8780, **kwargs_websocket)
+
+		for wcw in [alice, bob, charlie, testing]:
+			wcw.clear_objects_remote()
+
+		worker_instances = [alice, bob, charlie]
+	else:
+		## ----------------------------- This is for remote workers ------------------------------------
+		workers = []
+		## load workers data from json file.
+		workers_json = FileUtil.JSON_load("./config_data/FL-asyn-workers.json")
+		## for each items to setup WebsocketClientWorker
+		for worker in workers_json:
+			logger.debug("Setup worker:{}".format(worker))
+			kwargs_websocket = {"host": workers_json[worker]['ip'], "hook": hook}
+			worker_object = websocket_client.WebsocketClientWorker(id=workers_json[worker]['name'], 
+			                                        port=workers_json[worker]['port'], 
+			                                        **kwargs_websocket)
+
+			worker_object.clear_objects_remote()
+			workers.append(worker_object)
+
+		## set worker_instances and test node
+		worker_instances = workers[:-1]
+		testing = workers[-1]
+	return worker_instances, testing
 
 async def main():
 	args = define_and_get_arguments()
 
-	hook = sy.TorchHook(torch)
-
-	if(args.localworkers):
-	    # ----------------------------- This is for localhost workers --------------------------------
-	    kwargs_websocket = {"hook": hook, "verbose": args.verbose, "host": "0.0.0.0"}
-	    alice = websocket_client.WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket)
-	    bob = websocket_client.WebsocketClientWorker(id="bob", port=8778, **kwargs_websocket)
-	    charlie = websocket_client.WebsocketClientWorker(id="charlie", port=8779, **kwargs_websocket)
-	    testing = websocket_client.WebsocketClientWorker(id="testing", port=8780, **kwargs_websocket)
-	else:
-	    # ----------------------------- This is for remote workers ------------------------------------
-	    kwargs_websocket_alice = {"host": "128.226.78.195", "hook": hook}
-	    alice = websocket_client.WebsocketClientWorker(id="alice", port=8777, **kwargs_websocket_alice)
-
-	    kwargs_websocket_bob = {"host": "128.226.77.222", "hook": hook}
-	    bob = websocket_client.WebsocketClientWorker(id="bob", port=8777, **kwargs_websocket_bob)
-
-	    kwargs_websocket_charlie = {"host": "128.226.88.120", "hook": hook}
-	    charlie = websocket_client.WebsocketClientWorker(id="charlie", port=8777, **kwargs_websocket_charlie)
-
-	    # kwargs_websocket_testing = {"host": "128.226.77.111", "hook": hook}
-	    kwargs_websocket_testing = {"host": "128.226.88.210", "hook": hook}
-	    testing = websocket_client.WebsocketClientWorker(id="testing", port=8777, **kwargs_websocket_testing)
-
-	for wcw in [alice, bob, charlie, testing]:
-	    wcw.clear_objects_remote()
-
-	worker_instances = [alice, bob, charlie]
+	worker_instances, testing = wroker_config(args)
 
 	use_cuda = args.cuda and torch.cuda.is_available()
 
@@ -220,7 +231,7 @@ async def main():
 	traced_model = torch.jit.trace(model, torch.zeros([1, 1, 28, 28], dtype=torch.float).to(device))
 	learning_rate = args.lr
 
-	# Execute traning and test process round
+	## Execute traning and test process round
 	for curr_round in range(1, args.training_rounds + 1):
 		logger.info("Training round %s/%s", curr_round, args.training_rounds)
 
@@ -240,7 +251,7 @@ async def main():
 		models = {}
 		loss_values = {}
 
-		# Apply evaluate model for each 10 round and at the last round
+		## Apply evaluate model for each 10 round and at the last round
 		test_models = curr_round % 10 == 1 or curr_round == args.training_rounds
 		if test_models:
 			logger.info("Evaluating models")
@@ -257,7 +268,7 @@ async def main():
 					print_target_hist=False,
 				)
 
-		# Federate models (note that this will also change the model in models[0]
+		## Federate models (note that this will also change the model in models[0]
 		for worker_id, worker_model, worker_loss in results:
 			if worker_model is not None:
 				models[worker_id] = worker_model
@@ -286,6 +297,7 @@ async def main():
 		# decay learning rate
 		learning_rate = max(0.98 * learning_rate, args.lr * 0.01)
 
+	## save final trained model to local
 	if args.save_model:
 	    torch.save(traced_model.state_dict(), "mnist_cnn_asyn.pt")
 
