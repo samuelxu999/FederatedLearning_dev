@@ -41,8 +41,11 @@ parser.add_argument(
 
 parser.add_argument(
     "--id", type=str, 
-    default="alice", 
-    help="name (id) of the websocket server worker, e.g. --id alice"
+    help="name (id) of the websocket server worker, e.g. --id Pi4_R1_1"
+)
+parser.add_argument(
+    "--label_id", type=str, default="test",
+    help="keep labels id for select training data set, e.g. --label_id t03"
 )
 parser.add_argument(
     "--testing",
@@ -63,6 +66,8 @@ if(args.localworkers):
         "8777",
         "--id",
         "alice",
+        "--label_id",
+        "t03",
         "--host",
         "0.0.0.0",
     ]
@@ -74,6 +79,8 @@ if(args.localworkers):
         "8778",
         "--id",
         "bob",
+        "--label_id",
+        "t46",
         "--host",
         "0.0.0.0",
     ]
@@ -85,6 +92,8 @@ if(args.localworkers):
         "8779",
         "--id",
         "charlie",
+        "--label_id",
+        "t79",
         "--host",
         "0.0.0.0",
     ]
@@ -136,6 +145,8 @@ else:
             args.port,
             "--id",
             args.id,
+            "--label_id",
+            args.label_id,
             "--host",
             args.host
         ]
