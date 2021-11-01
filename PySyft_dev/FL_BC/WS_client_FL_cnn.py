@@ -130,6 +130,7 @@ def get_next_batches(fdataloader: sy.FederatedDataLoader, nr_batches: int):
         batches[worker] = []
     try:
         for i in range(nr_batches):
+            logger.info("next_batches - id: {}".format(i))
             next_batches = next(fdataloader)
             for worker in next_batches:
                 batches[worker].append(next_batches[worker])
