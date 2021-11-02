@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import syft as sy
 from syft.workers import websocket_client
 from syft.frameworks.torch.fl import utils
-from utilities import FileUtil
+from utils.utilities import FileUtil
 
 LOG_INTERVAL = 25
 logger = logging.getLogger(__name__)

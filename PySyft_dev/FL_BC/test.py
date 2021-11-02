@@ -8,8 +8,8 @@ import torch
 from torchvision import datasets
 from torchvision import transforms
 
-from model_utils import ModelUtils, EtherUtils, TenderUtils, MicroUtils, DatasetUtils
-from utilities import FileUtil
+from utils.model_utils import ModelUtils, EtherUtils, TenderUtils, MicroUtils, DatasetUtils
+from utils.utilities import FileUtil
 
 LOG_INTERVAL = 25
 
@@ -220,9 +220,9 @@ if __name__ == "__main__":
 	logging.basicConfig(format=FORMAT)
 	logger.setLevel(level=logging.DEBUG)
 
-	modelUtils_logger = logging.getLogger("model_utils")
+	modelUtils_logger = logging.getLogger("utils.model_utils")
 	modelUtils_logger.setLevel(logging.INFO)
-	indextoken_logger = logging.getLogger("Index_Token")
+	indextoken_logger = logging.getLogger("utils.Index_Token")
 	indextoken_logger.setLevel(logging.INFO)
 
 	args = define_and_get_arguments()

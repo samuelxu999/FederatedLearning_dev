@@ -15,7 +15,7 @@ import syft as sy
 from syft.workers.websocket_client import WebsocketClientWorker
 from syft.workers.virtual import VirtualWorker
 from syft.frameworks.torch.fl import utils
-from utilities import FileUtil
+from utils.utilities import FileUtil
 
 logger = logging.getLogger(__name__)
 LOG_INTERVAL = 25

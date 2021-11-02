@@ -10,10 +10,10 @@ Created on July.02, 2018
 @TaskDescription: This module provide encapsulation of web3.py API to interact with IndexToken.sol smart contract.
 '''
 
-from web3 import Web3, HTTPProvider, IPCProvider
-from utilities import DatetimeUtil, TypesUtil
 import json, datetime, time
 import logging
+from web3 import Web3, HTTPProvider, IPCProvider
+from utils.utilities import DatetimeUtil, TypesUtil
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ class IndexToken(object):
 		return address_json[node_name]
 
 def test_main():
-	addr_list = "./addr_list.json"
+	addr_list = "./config_data/addr_list.json"
 	http_provider = "http://localhost:8042"
 	contract_addr = IndexToken.getAddress('HashModelToken', addr_list)
 	contract_config = "./contracts/IndexToken.json"
@@ -133,26 +133,26 @@ def test_main():
 
 
 	#------------------------- test contract API ---------------------------------
-	#Read token data using call
+	##Read token data using call
 	token_data=mytoken.getIndexToken('1')
 	IndexToken.print_tokendata(token_data)
 
-	#read node data using call
+	##read node data using call
 	node_list=mytoken.getAuthorizedNodes()
 	logger.info("Authorized node:")
 	for node in node_list:
 		logger.info("    {}".format(node))
 
-	#Send transact
-	#mytoken.initIndexToken('1');
-	#mytoken.setIndexToken('1', 'dave')
+	## Send transact
+	# mytoken.initIndexToken('1');
+	# mytoken.setIndexToken('1', 'dave')
 
-	node_address = IndexToken.getAddress('rack1_PI_Plus_1', './addr_list.json')
+	node_address = IndexToken.getAddress('rack1_PI_Plus_1', addr_list)
 	# mytoken.addAuthorizedNodes(node_address)
-	#mytoken.removeAuthorizedNodes(node_address)
+	# mytoken.removeAuthorizedNodes(node_address)
 
 def tx_commit():
-	addr_list = "./addr_list.json"
+	addr_list = "./config_data/addr_list.json"
 	http_provider = "http://localhost:8042"
 	contract_addr = IndexToken.getAddress('HashModelToken', addr_list)
 	contract_config = "./contracts/IndexToken.json"	

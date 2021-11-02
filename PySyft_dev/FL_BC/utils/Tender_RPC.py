@@ -14,7 +14,7 @@ import requests
 import json
 import time
 import os
-from utilities import TypesUtil,FileUtil
+from utils.utilities import TypesUtil,FileUtil
 
 class Tender_RPC(object):
 

@@ -9,18 +9,18 @@ import torch.nn.functional as F
 from torchvision import datasets
 from torchvision import transforms
 
-from utilities import TypesUtil, FileUtil
-from wrapper_pyca import Crypto_Hash
-from Index_Token import IndexToken 
-from Tender_RPC import Tender_RPC
-from Micro_RPC import Micro_RPC 
+from cryptolib.wrapper_pyca import Crypto_Hash
+from utils.utilities import TypesUtil, FileUtil
+from utils.Index_Token import IndexToken 
+from utils.Tender_RPC import Tender_RPC
+from utils.Micro_RPC import Micro_RPC 
 
 logger = logging.getLogger(__name__)
 # indextoken_logger = logging.getLogger("Index_Token")
 # indextoken_logger.setLevel(logging.INFO)
 
 # -------------------- Smart contract configuration -------------------
-addr_list = "./addr_list.json"
+addr_list = "./config_data/addr_list.json"
 http_provider = "http://localhost:8042"
 contract_addr = IndexToken.getAddress('HashModelToken', addr_list)
 contract_config = "./contracts/IndexToken.json"
