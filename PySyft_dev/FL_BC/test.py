@@ -10,6 +10,7 @@ from torchvision import transforms
 
 from utils.model_utils import ModelUtils, EtherUtils, TenderUtils, MicroUtils, DatasetUtils
 from utils.utilities import FileUtil
+from utils.Swarm_RPC import Swarm_RPC
 
 LOG_INTERVAL = 25
 
@@ -40,7 +41,10 @@ def define_and_get_arguments(args=sys.argv[1:]):
     parser.add_argument("--test_network", type=int, default=0, 
                         help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint, 3-Microchain")
     parser.add_argument("--test_func", type=int, default=0, 
-                        help="Execute test function: 0-test_model, 1-test_hashmodel")
+                        help="Execute test function: 0-test_model, 1-test_hashmodel, \
+                        	2-test_hashdataset, 3-test_maskedModel, 4-test_swarm")
+    parser.add_argument("--op_status", type=int, default=0, 
+                        help="operation status: based on app")
     parser.add_argument("--query_tx", type=int, default=0, 
                         help="Query tx or commit tx: 0-Query, 1-Commit")
     parser.add_argument("--mask_model", type=int, default=0, 
@@ -57,8 +61,9 @@ def test_model(args):
     kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
 
     logger.info("module setup...\n")
-    # model=load_model("mnist_cnn.pt", True)
-    model=ModelUtils.load_model("mnist_cnn.pt", True)
+    ## load model from file
+    model_file = "./data/"+args.model_name
+    model=ModelUtils.load_model(model_file, True)
 
     logger.info("test_loader setup...\n")
     test_loader = torch.utils.data.DataLoader(
@@ -212,6 +217,33 @@ def test_maskedModel(args):
 				logger.info("test fedavg_model module...\n")
 				ModelUtils.evaluate_model(fedavg_model, device, test_loader)
 
+def test_swarm(args):
+	## get swarm server node address
+	target_address = Swarm_RPC.get_service_address()
+
+	##==================== test upload file =========================
+	tx_json = {}
+	if(args.op_status==0):
+		file_name = "swarm_file.txt"
+		file_download = "./data/download_file.txt"
+	else:
+		file_name = "mnist_cnn.pt"
+		file_download = "./data/download_model.pt"
+
+	tx_json['upload_file']="./data/"+file_name
+
+	## send file to swarm server
+	post_ret = Swarm_RPC.upload_file(target_address, tx_json)
+	logger.info(post_ret)
+
+	##==================== test download file =========================
+	## get swarm hash from post_ret by upload_file
+	swarm_hash = post_ret['data']
+
+	## call smarm server to retrive file
+	query_ret = Swarm_RPC.download_file(target_address, swarm_hash, file_name, file_download)
+	logger.info(query_ret)
+
 
 
 if __name__ == "__main__":
@@ -235,5 +267,7 @@ if __name__ == "__main__":
 		test_hashdataset(args)
 	elif(args.test_func==3):
 		test_maskedModel(args)
+	elif(args.test_func==4):
+		test_swarm(args)
 	else:
 		pass
