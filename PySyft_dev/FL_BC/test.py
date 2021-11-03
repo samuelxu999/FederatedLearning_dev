@@ -85,7 +85,8 @@ def test_model(args):
 
 
 def test_hashmodel(args):
-	model_name = args.model_name
+	## set model file path
+	model_name = "./data/"+args.model_name
 	for i in range(args.tx_round):
 	    logger.info("Test run:{}".format(i+1))
 	    if(args.test_network==1):
@@ -181,8 +182,9 @@ def test_maskedModel(args):
 	    shuffle=True,
 	    **kwargs,
 	)
-
-	model=ModelUtils.load_model("mnist_cnn.pt", False)
+	## set model file path
+	model_name = "./data/"+args.model_name
+	model=ModelUtils.load_model(model_name, False)
 
 	for i in range(args.tx_round):
 		if(args.mask_model==0):
