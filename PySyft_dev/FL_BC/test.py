@@ -220,31 +220,41 @@ def test_maskedModel(args):
 				ModelUtils.evaluate_model(fedavg_model, device, test_loader)
 
 def test_swarm(args):
-	## get swarm server node address
-	target_address = Swarm_RPC.get_service_address()
+	for i in range(args.tx_round):
+		logger.info("Test run:{}".format(i+1))
+		## get swarm server node address
+		target_address = Swarm_RPC.get_service_address()
 
-	##==================== test upload file =========================
-	tx_json = {}
-	if(args.op_status==0):
-		file_name = "swarm_file.txt"
-		file_download = "./data/download_file.txt"
-	else:
-		file_name = "mnist_cnn.pt"
-		file_download = "./data/download_model.pt"
+		##==================== test upload file =========================
+		tx_json = {}
+		if(args.op_status==0):
+			file_name = "swarm_file.txt"
+			file_download = "./data/download_file.txt"
+		else:
+			file_name = "mnist_cnn.pt"
+			file_download = "./data/download_model.pt"
 
-	tx_json['upload_file']="./data/"+file_name
+		tx_json['upload_file']="./data/"+file_name
 
-	## send file to swarm server
-	post_ret = Swarm_RPC.upload_file(target_address, tx_json)
-	logger.info(post_ret)
+		ls_time_exec = []
+		start_time=time.time()
+		## send file to swarm server
+		post_ret = Swarm_RPC.upload_file(target_address, tx_json)
+		ls_time_exec.append(format( (time.time()-start_time)*1000, '.3f' )) 
+		logger.info(post_ret)
 
-	##==================== test download file =========================
-	## get swarm hash from post_ret by upload_file
-	swarm_hash = post_ret['data']
+		##==================== test download file =========================
+		## get swarm hash from post_ret by upload_file
+		swarm_hash = post_ret['data']
 
-	## call smarm server to retrive file
-	query_ret = Swarm_RPC.download_file(target_address, swarm_hash, file_name, file_download)
-	logger.info(query_ret)
+		start_time=time.time()
+		## call smarm server to retrive file
+		query_ret = Swarm_RPC.download_file(target_address, swarm_hash, file_name, file_download)
+		ls_time_exec.append(format( (time.time()-start_time)*1000, '.3f' )) 
+		logger.info(query_ret)
+
+		str_time_exec=" ".join(ls_time_exec)
+		FileUtil.save_testlog('test_results', 'test_swarm.log', str_time_exec)
 
 
 
