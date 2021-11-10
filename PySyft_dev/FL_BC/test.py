@@ -3,6 +3,7 @@ import logging
 import argparse
 import sys
 import os
+import random
 import numpy as np
 import torch
 from torchvision import datasets
@@ -19,38 +20,40 @@ logger = logging.getLogger(__name__)
 #global variable
 
 def define_and_get_arguments(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(
-        description="Run federated learning using websocket client workers."
-    )
-    parser.add_argument(
-        "--id", type=str, help="name (id) of the websocket server worker, e.g. --id alice"
-    )
-    parser.add_argument(
-        "--model_name", type=str, default='mnist_cnn.pt', help="model name that store state_dict()"
-    )
-    parser.add_argument("--batch_size", type=int, default=32, help="batch size of the training")
-    parser.add_argument(
-        "--test_batch_size", type=int, default=128, help="batch size used for the test data"
-    )
-    parser.add_argument("--cuda", action="store_true", help="use cuda")
-    parser.add_argument("--eval_model", action="store_true", help="Evaluate model")
-    parser.add_argument("--seed", type=int, default=1, help="seed used for randomization")
-    parser.add_argument("--tx_round", type=int, default=1, help="tx evaluation round")
-    parser.add_argument("--wait_interval", type=int, default=1, 
-                        help="break time between tx evaluate step.")
-    parser.add_argument("--test_network", type=int, default=0, 
-                        help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint, 3-Microchain")
-    parser.add_argument("--test_func", type=int, default=0, 
-                        help="Execute test function: 0-test_model, 1-test_hashmodel, \
-                        	2-test_hashdataset, 3-test_maskedModel, 4-test_swarm")
-    parser.add_argument("--op_status", type=int, default=0, 
-                        help="operation status: based on app")
-    parser.add_argument("--query_tx", type=int, default=0, 
-                        help="Query tx or commit tx: 0-Query, 1-Commit")
-    parser.add_argument("--mask_model", type=int, default=0, 
-                        help="Mask model operation: 0-mask input, 1-Sum of model and Fedavg")
-    args = parser.parse_args(args=args)
-    return args
+	parser = argparse.ArgumentParser(
+	    description="Run federated learning using websocket client workers."
+	)
+	parser.add_argument(
+	    "--id", type=str, help="name (id) of the websocket server worker, e.g. --id alice"
+	)
+	parser.add_argument(
+	    "--model_name", type=str, default='mnist_cnn.pt', help="model name that store state_dict()"
+	)
+	parser.add_argument("--batch_size", type=int, default=32, help="batch size of the training")
+	parser.add_argument(
+	    "--test_batch_size", type=int, default=128, help="batch size used for the test data"
+	)
+	parser.add_argument("--cuda", action="store_true", help="use cuda")
+	parser.add_argument("--eval_model", action="store_true", help="Evaluate model")
+	parser.add_argument("--seed", type=int, default=1, help="seed used for randomization")
+	parser.add_argument("--tx_round", type=int, default=1, help="tx evaluation round")
+	parser.add_argument("--wait_interval", type=int, default=1, 
+	                    help="break time between tx evaluate step.")
+	parser.add_argument("--test_network", type=int, default=0, 
+	                    help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint, 3-Microchain")
+	parser.add_argument("--test_func", type=int, default=0, 
+	                    help="Execute test function: 0-test_model, 1-test_hashmodel, \
+	                    	2-test_hashdataset, 3-test_maskedModel, 4-test_swarm")
+	parser.add_argument("--op_status", type=int, default=0, 
+	                    help="operation status: based on app")
+	parser.add_argument("--query_tx", type=int, default=0, 
+	                    help="Query tx or commit tx: 0-Query, 1-Commit")
+	parser.add_argument("--mask_model", type=int, default=0, 
+	                    help="Mask model operation: 0-mask input, 1-Sum of model and Fedavg")
+	parser.add_argument("--target_address", type=str, default="0.0.0.0:8080",
+						help="Test target address - ip:port.")
+	args = parser.parse_args(args=args)
+	return args
 
 def test_model(args):
     use_cuda = args.cuda and torch.cuda.is_available()
@@ -87,6 +90,7 @@ def test_model(args):
 def test_hashmodel(args):
 	## set model file path
 	model_name = "./data/"+args.model_name
+	target_address = args.target_address
 	for i in range(args.tx_round):
 	    logger.info("Test run:{}".format(i+1))
 	    if(args.test_network==1):
@@ -116,14 +120,18 @@ def test_hashmodel(args):
 	        if(args.query_tx==0):
 	            # verify hash model
 	            logger.info("Verify model: '{}' --- {}\n".format(model_name, 
-	                                                        MicroUtils.verify_hashmodel(model_name)) )
+	                                                        MicroUtils.verify_hashmodel(model_name, target_address)) )
 	        else:
 	            # call tx_evaluate() and record tx_commit time
 	            logger.info("Tx commit model '{}' --- {}\n".format(model_name, 
-	                                                        MicroUtils.tx_evaluate(model_name)))
+	                                                        MicroUtils.tx_evaluate(model_name, target_address)))
 	    else:
 	        pass
-	    time.sleep(args.wait_interval)
+	    if(args.wait_interval==0):
+	    	time.sleep(random.randint(0,5))
+	    else:
+	    	time.sleep(args.wait_interval)
+	    
 
 def test_hashdataset(args, training=False):
 
