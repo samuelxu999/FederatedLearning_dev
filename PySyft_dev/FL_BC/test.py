@@ -11,6 +11,7 @@ from torchvision import transforms
 from utils.model_utils import ModelUtils, EtherUtils, TenderUtils, MicroUtils, DatasetUtils
 from utils.utilities import FileUtil
 from utils.Swarm_RPC import Swarm_RPC
+from cryptolib.crypto_sym import Crypto_SYM
 
 LOG_INTERVAL = 25
 
@@ -19,38 +20,41 @@ logger = logging.getLogger(__name__)
 #global variable
 
 def define_and_get_arguments(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(
-        description="Run federated learning using websocket client workers."
-    )
-    parser.add_argument(
-        "--id", type=str, help="name (id) of the websocket server worker, e.g. --id alice"
-    )
-    parser.add_argument(
-        "--model_name", type=str, default='mnist_cnn.pt', help="model name that store state_dict()"
-    )
-    parser.add_argument("--batch_size", type=int, default=32, help="batch size of the training")
-    parser.add_argument(
-        "--test_batch_size", type=int, default=128, help="batch size used for the test data"
-    )
-    parser.add_argument("--cuda", action="store_true", help="use cuda")
-    parser.add_argument("--eval_model", action="store_true", help="Evaluate model")
-    parser.add_argument("--seed", type=int, default=1, help="seed used for randomization")
-    parser.add_argument("--tx_round", type=int, default=1, help="tx evaluation round")
-    parser.add_argument("--wait_interval", type=int, default=1, 
-                        help="break time between tx evaluate step.")
-    parser.add_argument("--test_network", type=int, default=0, 
-                        help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint, 3-Microchain")
-    parser.add_argument("--test_func", type=int, default=0, 
-                        help="Execute test function: 0-test_model, 1-test_hashmodel, \
-                        	2-test_hashdataset, 3-test_maskedModel, 4-test_swarm")
-    parser.add_argument("--op_status", type=int, default=0, 
-                        help="operation status: based on app")
-    parser.add_argument("--query_tx", type=int, default=0, 
-                        help="Query tx or commit tx: 0-Query, 1-Commit")
-    parser.add_argument("--mask_model", type=int, default=0, 
-                        help="Mask model operation: 0-mask input, 1-Sum of model and Fedavg")
-    args = parser.parse_args(args=args)
-    return args
+	parser = argparse.ArgumentParser(
+	    description="Run federated learning using websocket client workers."
+	)
+	parser.add_argument(
+	    "--id", type=str, help="name (id) of the websocket server worker, e.g. --id alice"
+	)
+	parser.add_argument(
+	    "--model_name", type=str, default='mnist_cnn.pt', help="model name that store state_dict()"
+	)
+	parser.add_argument("--batch_size", type=int, default=32, help="batch size of the training")
+	parser.add_argument(
+	    "--test_batch_size", type=int, default=128, help="batch size used for the test data"
+	)
+	parser.add_argument("--cuda", action="store_true", help="use cuda")
+	parser.add_argument("--eval_model", action="store_true", help="Evaluate model")
+	parser.add_argument("--seed", type=int, default=1, help="seed used for randomization")
+	parser.add_argument("--tx_round", type=int, default=1, help="tx evaluation round")
+	parser.add_argument("--wait_interval", type=int, default=1, 
+	                    help="break time between tx evaluate step.")
+	parser.add_argument("--test_network", type=int, default=0, 
+	                    help="Blockchain test network: 0-None, 1-Etherem, 2-Tendermint, 3-Microchain")
+	parser.add_argument("--test_func", type=int, default=0, 
+	                    help="Execute test function: 0-test_model, 1-test_hashmodel, \
+	                    	2-test_hashdataset, 3-test_maskedModel, 4-test_swarm")
+	parser.add_argument("--op_status", type=int, default=0, 
+	                    help="operation status: based on app")
+	parser.add_argument("--query_tx", type=int, default=0, 
+	                    help="Query tx or commit tx: 0-Query, 1-Commit")
+	parser.add_argument("--mask_model", type=int, default=0, 
+	                    help="Mask model operation: 0-mask input, 1-Sum of model and Fedavg")
+
+	parser.add_argument("--message", type=str, default="", help="Test message text.")
+
+	args = parser.parse_args(args=args)
+	return args
 
 def test_model(args):
     use_cuda = args.cuda and torch.cuda.is_available()
@@ -256,6 +260,70 @@ def test_swarm(args):
 		str_time_exec=" ".join(ls_time_exec)
 		FileUtil.save_testlog('test_results', 'test_swarm.log', str_time_exec)
 
+def test_sym(args):
+	for i in range(args.tx_round):
+		logger.info("Test run:{}".format(i+1))
+		## set model file path
+		model_name = "./data/"+args.model_name
+		model=ModelUtils.load_model(model_name, False)
+		str_model = ModelUtils.model2str(model)
+
+		salt_file = 'sym_salt'
+		## 1) generate salt
+		Crypto_SYM.generate_salt(salt_file)
+		logger.info('Generate salt and saved to {}.\n'.format(salt_file))
+
+		## 2) reload salt
+		random_salt = Crypto_SYM.reload_salt(salt_file)
+		logger.info('Reload salt from {}.\n'.format(salt_file))
+
+		ls_time_exec = []
+
+		## 3) encrypt message
+		start_time=time.time()
+		toekn = Crypto_SYM.encrypt(random_salt, 'samuelxu999', str_model)
+		ls_time_exec.append(format( (time.time()-start_time)*1000, '.3f' )) 
+		logger.info('Encryped model data: {}.\n'.format(model_name))
+
+		## 4) decrypt message
+		start_time=time.time()
+		dec_msg = Crypto_SYM.decrypt(random_salt, 'samuelxu999', toekn)
+		ls_time_exec.append(format( (time.time()-start_time)*1000, '.3f' )) 
+		logger.info('Decryped to original model data.\n')
+
+		str_time_exec=" ".join(ls_time_exec)
+		FileUtil.save_testlog('test_results', 'test_sym.log', str_time_exec)
+
+
+	# dec_model=ModelUtils.load_model('', False)
+	# _model = ModelUtils.str2model(dec_msg, dec_model)
+	# logger.info('Decryped to original model data: {}.\n'.format(_model))
+
+	# ## evaluate model
+	# use_cuda = args.cuda and torch.cuda.is_available()
+
+	# torch.manual_seed(args.seed)
+
+	# device = torch.device("cuda" if use_cuda else "cpu")
+	# kwargs = {"num_workers": 1, "pin_memory": True} if use_cuda else {}
+
+	# logger.info("test_loader setup...\n")
+	# test_loader = torch.utils.data.DataLoader(
+	#     datasets.MNIST(
+	#         root="./data",
+	#         train=False,
+	#         download=True,
+	#         transform=transforms.Compose(
+	#             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+	#         ),
+	#     ),
+	#     batch_size=args.test_batch_size,
+	#     shuffle=True,
+	#     **kwargs,
+	# )
+
+	# logger.info("test decryped model module...\n")
+	# ModelUtils.evaluate_model(_model, device, test_loader)
 
 
 if __name__ == "__main__":
@@ -281,5 +349,7 @@ if __name__ == "__main__":
 		test_maskedModel(args)
 	elif(args.test_func==4):
 		test_swarm(args)
+	elif(args.test_func==5):
+		test_sym(args)
 	else:
 		pass

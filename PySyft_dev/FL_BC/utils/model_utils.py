@@ -2,6 +2,8 @@ import time
 import logging
 import os
 import copy
+import numpy as np
+import ast
 
 import torch
 import torch.nn as nn
@@ -112,6 +114,58 @@ class ModelUtils(object):
             )
         )
         return accuracy, test_loss
+
+
+    @staticmethod
+    def model2str(tensor_model):
+        '''
+        Convert tensor model data to string format (tensor-->numpy-->string)
+
+        Args:
+            tensor_model: tensor model object
+
+        Returns:
+            string model
+        '''
+        # str_model=[]
+        json_model = {}
+        # For each model's state_dict to get str_model
+        logger.info("For each model's state_dict to get str_model...\n")
+        for param_tensor in tensor_model.state_dict():
+            # conver to numpy array
+            value_np = tensor_model.state_dict()[param_tensor].numpy()
+            # conver to string, which is used for hash function
+            # json_model[param_tensor]=value_np.tostring().decode(encoding='ISO-8859-1')
+            # json_model[param_tensor]=np.array2string(value_np)
+            json_model[param_tensor] = value_np.tolist()
+            # print(value_np.shape)
+
+        return TypesUtil.json_to_string(json_model)
+
+    @staticmethod
+    def str2model(str_model, tensor_model):
+        '''
+        Convert string model data to tensor format (string-->numpy-->tensor)
+
+        Args:
+            model: string model 
+
+        Returns:
+            tensor model
+        '''
+        model = copy.deepcopy(tensor_model)
+        state_dict = tensor_model.state_dict()
+        json_model=TypesUtil.string_to_json(str_model)
+        # For each key to build numpy model item
+        logger.info("For each model's state_dict to rebuild state_dict...\n")
+        for param_tensor in state_dict:
+            # conver to numpy array
+            np_tensor = np.array(json_model[param_tensor], dtype='float32')
+            model.state_dict()[param_tensor] = torch.tensor(np_tensor)
+            # print(np.fromstring(json_model[param_tensor].encode(encoding='ISO-8859-1'), dtype=np.float32).shape)
+            # print(model.state_dict()[param_tensor].shape)
+
+        return model
 
     @staticmethod
     def hash_model(model):
